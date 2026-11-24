@@ -1,0 +1,2903 @@
+\documentclass[10pt, a4paper, twocolumn]{article} % 两栏排版，最省纸
+
+% --- 基础设置（这部分你永远不需要动） ---
+\usepackage[UTF8]{ctex} % 中文支持
+\usepackage[left=1cm, right=1cm, top=1.5cm, bottom=1.5cm]{geometry} % 极窄边距
+\usepackage{listings} % 代码显示
+\usepackage{xcolor}
+\lstset{
+    language=C++,
+    basicstyle=\ttfamily\scriptsize, % 字体极小，为了省纸
+    breaklines=true,
+    numbers=left,
+    frame=single,
+    tabsize=2
+}
+
+\begin{document}
+
+\title{我的竞赛参考资料 (TRD)}
+\author{姓名}
+\maketitle
+\tableofcontents % 自动生成目录
+\newpage
+
+% --- 【这里开始是你的填空区】 ---
+
+\section{杂项}
+    \subsection{trick}
+    \subsubsection{区间排序+扫描}
+    \begin{lstlisting}
+        将所有区间按照左端点升序排序，然后维护最大右端点的套路在很多题都会用到。注意要维护前缀的最大右端点，不能只是拿当前右端点跟上一个区间的右端点比较，因为右端点不一定是升序的。
+        然后对于上面的这种套路右端点升序还是降序通常不影响(就是说如果左端点相同那么右端点升序还是降序排列)，但是在一些其他的区间问题中可能次关键字(这里的右端点)的排序方向很重要，不能一概而论。
+    \end{lstlisting}
+    \subsection{板子}
+    \subsubsection{最小质因子筛法}    
+    \begin{lstlisting}
+        const int MAXN=200005;
+		int min_prime[MAXN];//min_prime[i]表示i的最小质因数
+		void sieve()//预处理所有数的最小质因数
+		{
+			for(int i=2;i<MAXN;i++)
+			{
+				if(min_prime[i]==0)//表示i是质数，因为如果i是合数，那么它肯定在之前已经被标记过了   
+				{
+					for(int j=i;j<MAXN;j+=i)//把i的倍数还没被标记的全部标记上
+					{
+						if(min_prime[j]==0) min_prime[j]=i;
+					}
+				}
+			}
+		}
+		vector<int>get_prime_factors(int n)//快速获取一个数的所有不同质因数，用vector形式返回
+		{
+			vector<int>factors;
+			while(n>1)
+			{
+				int p=min_prime[n];//找当前n的最小质因数
+				factors.pb(p);
+				while(n%p==0) n/=p;//去掉所有相同的质因子
+			}
+			return factors;
+		}
+    \end{lstlisting}
+
+    \subsubsection{坐标离散化}
+    \begin{lstlisting}
+    	//坐标压缩：数组的值可能很大，达到1e9，这时候用vector会爆，用map常数太大，可以用坐标压缩。
+           //如果我们不在意数组的具体值，只在乎有多少个不同的数值，那么让每个数值=他在数组中是第几大的数，这样构成的新数组最大也就2e5。
+            vector<int>a(n);
+			vector<int>b;
+			for(int i=0;i<n;i++)
+			{
+				cin>>a[i];
+				b.pb(a[i]);
+			}
+			sort(b.begin(),b.end());
+			b.erase(unique(b.begin(),b.end()),b.end());
+			for(int i=0;i<n;i++)
+			{
+				a[i]=lower_bound(b.begin(),b.end(),a[i])-b.begin();
+			}
+    \end{lstlisting}
+
+
+    \subsubsection{exgcd}
+    \begin{lstlisting}
+int exgcd(int a,int b,int &x,int &y)//得到的x和y是右边为gcd（a，b）时的特解，如果右边是k*gcd（a，b），还要将x，y乘k
+{
+    if(b==0)
+    {
+        x=1,y=0;
+        return a;
+    }
+    int d=exgcd(b,a%b,y,x);
+    y-=(a/b)*x;
+    return d;
+}
+//通解形式可以表示为：x=xp+k*（b/g）
+//                  y=yp+k*(a/g)
+    \end{lstlisting}
+    \subsubsection{随机数}
+    \begin{lstlisting}
+mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());//在全局写这句
+int x=rng()%n;//生成一个0~n-1的随机数
+
+vector<int>v;
+shuffle(v.begin(),v.end(),rng);//将v中的排列随机打乱
+    \end{lstlisting}
+    \subsubsection{线性基}
+    \begin{lstlisting}
+    // 全局定义基数组
+ll p[62]; 
+bool has_zero = false; // 是否能异或出 0
+
+// 1. 插入：这是最核心的
+void insert(ll x) {
+    for (int i = 62; i >= 0; i--) {
+        if (!(x >> i & 1)) continue;
+        if (!p[i]) {
+            p[i] = x;
+            return;
+        }
+        x ^= p[i];
+    }
+    has_zero = true; 
+}
+
+// 2. 查询最大异或和
+ll query_max() {
+    ll res = 0;
+    for (int i = 62; i >= 0; i--) {
+        if ((res ^ p[i]) > res) res ^= p[i];
+    }
+    return res;
+}
+
+// 3. 检查某个数能否被凑出来
+bool check(ll x) {
+    for (int i = 62; i >= 0; i--) {
+        if (!(x >> i & 1)) continue;
+        if (!p[i]) return false;
+        x ^= p[i];
+    }
+    return true;
+}
+
+//如果想知道每一位是由idx的哪些下标组成的可以这样写，mask是定义的全局数组（用二进制形式记录每一位由哪些下标组成），local_id是idx里的下标，idx是事先判断出来的线性基的原数组的下标数组，idx最多30个元素（一般）
+int mask[32];
+void insert_mask(int val,int local_id)
+{
+	int cur_mask=(1ll<<local_id);
+	for(int i=30;i>=0;i--)
+	{
+		if(!(val>>i&1)) continue;
+		if(!p[i])
+		{
+			p[i]=val;
+			mask[i]=cur_mask;
+			return;
+		}
+		val^=p[i];
+		cur_mask^=mask[i];
+	}
+}
+    \end{lstlisting}
+    \subsubsection{组合数}
+    \begin{lstlisting}
+    //帕斯卡三角形法，适用于N较小（如N<=5000）且没有模数或模数不是质数的情况。
+int C[505][505]={0};//这里自己灵活改数组大小，如果没有mod太大了会爆
+void init_pascal()
+{
+    for(int i=0;i<=500;i++)
+    {
+        C[i][0]=1;
+        for(int j=1;j<=i;j++)
+        {
+            C[i][j]=(C[i-1][j-1]+C[i-1][j])%MOD;
+        }
+    }
+}
+
+//直接套公式法，更常用，适用于N比较大且有模数并且模数是质数的情况
+int fact[MAXN], invFact[MAXN];
+
+
+int fastPow(int a, int b) {
+    int res = 1;
+    a %= MOD;
+    while (b > 0) {
+        if (b % 2 == 1) res = (res * a) % MOD;
+        a = (a * a) % MOD;
+        b /= 2;
+    }
+    return res;
+}
+
+
+int modInverse(int n) {
+    return fastPow(n, MOD - 2);
+}
+
+// 预处理阶乘和阶乘逆元
+void precompute() {
+    fact[0] = 1;
+    for (int i = 1; i < MAXN; i++) {
+        fact[i] = (fact[i - 1] * i) % MOD;
+    }
+   
+    invFact[MAXN - 1] = modInverse(fact[MAXN - 1]);
+    for (int i = MAXN - 2; i >= 0; i--) {
+        invFact[i] = (invFact[i + 1] * (i + 1)) % MOD;
+    }
+}
+
+// 计算 C(n, r)
+int nCr(int n, int r) {
+    if (r < 0 || r > n) return 0;
+    return fact[n] * invFact[r] % MOD * invFact[n - r] % MOD;
+}
+    \end{lstlisting}
+     \subsubsection{线段树}
+    \begin{lstlisting}
+               struct Segtree {
+    // 内部节点结构
+    struct Node {
+        int l, r;
+        long long data;
+        long long lazy;
+    };
+
+    int n; 
+    vector<Node> tr; // 使用 vector 动态开点
+
+    // 局部宏定义，避免污染外部命名空间
+    #define ls (u << 1)
+    #define rs (u << 1 | 1)
+
+    // 构造函数，初始化大小
+    Segtree(int _n) {
+        n = _n;
+        tr.resize((n + 1) << 2);
+    }
+
+    void pushup(int u) {
+        tr[u].data = min(tr[ls].data, tr[rs].data);
+    }
+
+    void eval(int u, long long v) {
+        tr[u].data = min(tr[u].data, v);
+        tr[u].lazy = min(tr[u].lazy, v); 
+    }
+
+    void pushdown(int u) {
+        if (tr[u].lazy != INF) {
+            eval(ls, tr[u].lazy);
+            eval(rs, tr[u].lazy);
+            tr[u].lazy = INF; 
+        }
+    }
+
+    // 内部递归建树
+    void build_tree(int u, int l, int r, const vector<long long>& a) {
+        tr[u] = {l, r, INF, INF};
+        if (l == r) {
+            // 如果传入了有效的初始数组 a，则赋值；否则默认为 INF
+            if (l < a.size()) tr[u].data = a[l];
+            return;
+        }
+        int mid = (l + r) >> 1;
+        build_tree(ls, l, mid, a);
+        build_tree(rs, mid + 1, r, a);
+        pushup(u);
+    }
+
+    // 内部递归更新
+    void update_tree(int u, int L, int R, long long v) {
+        if (L <= tr[u].l && R >= tr[u].r) {
+            eval(u, v);
+            return;
+        }
+        pushdown(u);
+        int mid = (tr[u].l + tr[u].r) >> 1;
+        if (L <= mid) update_tree(ls, L, R, v);
+        if (R >= mid + 1) update_tree(rs, L, R, v);
+        pushup(u);
+    }
+
+    // 内部递归查询
+    long long query_tree(int u, int L, int R) {
+        if (L <= tr[u].l && R >= tr[u].r) {
+            return tr[u].data;
+        }
+        pushdown(u);
+        int mid = (tr[u].l + tr[u].r) >> 1;
+        long long res = INF; 
+        
+        if (L <= mid) res = min(res, query_tree(ls, L, R));
+        if (R >= mid + 1) res = min(res, query_tree(rs, L, R));
+        return res;
+    }
+
+    // ==========================================
+    // 外部调用的干净接口
+    // ==========================================
+
+    // 1. 初始化建树 
+    // 如果有初始数组，传进来；如果没有，直接传个空的 vector
+    void build(const vector<long long>& a = vector<long long>()) {
+        build_tree(1, 1, n, a);
+    }
+
+    // 2. 对区间 [L, R] 执行修改 (取 min)
+    void update(int L, int R, long long v) {
+        if (L > R || L < 1 || R > n) return; // 自动拦截非法区间
+        update_tree(1, L, R, v);
+    }
+
+    // 3. 查询区间 [L, R] 的结果 (求 min)
+    long long query(int L, int R) {
+        if (L > R || L < 1 || R > n) return INF;
+        return query_tree(1, L, R);
+    }
+
+    #undef ls
+    #undef rs
+};
+
+/*
+// 1. 实例化与建树
+// 假设你要维护的区间长度是 m
+int m = 10000;
+SegTree seg(m);
+
+// 情景 A：你需要一个全空的树（比如这道黑题，初始 data 和 lazy 都是 INF）
+seg.build(); 
+
+// 情景 B：你有初始数据，需要带数组建树（注意 a 数组有效下标必须从 1 开始匹配）
+// vector<long long> arr = {0, 10, 20, 30, 40}; // arr[1] 到 arr[4]
+// SegTree seg2(4);
+// seg2.build(arr);
+
+// 2. 区间修改与查询
+// 区间 [2, 5] 更新值为 100 (由于内部是取 min，只有小于原值才会更新)
+seg.update(2, 5, 100);
+
+// 查询区间 [3, 4] 的最小值
+long long ans = seg.query(3, 4);
+
+// 查询单点 3 的值（区间左右端点填一样即可）
+long long single_val = seg.query(3, 3);
+*/
+    \end{lstlisting}
+    \subsubsection{ST表}
+    \begin{lstlisting}
+    
+
+/**
+ * ST 表模板
+ * 复杂度：预处理 O(N log N)，查询 O(1)
+ */
+const int MAXN = 200005; // 这里的 N 要根据题目总量给够
+const int LOGN = 20;     // 2^20 足够覆盖 10^6
+
+int st[MAXN][LOGN];
+int lg[MAXN];
+
+// 1. 预处理 log 数组 (在 main 函数开头调用一次即可)
+void init_lg() {
+    lg[1] = 0;
+    for (int i = 2; i < MAXN; i++) {
+        lg[i] = lg[i / 2] + 1;
+    }
+}
+
+// 2. 构建 ST 表 (n 是数组的最大有效下标)
+// 注意：如果你的数组是从 0 到 n，那么传参就是 n
+void build(int n, const vector<int>& a) {
+    // 基础状态：长度为 1 的区间最大值就是本身
+    for (int i = 0; i <= n; i++) {
+        st[i][0] = a[i];
+    }
+    
+    // 动态规划填充：倍增区间长度
+    for (int j = 1; j < LOGN; j++) {
+        for (int i = 0; i + (1 << j) - 1 <= n; i++) {
+            // 区间 [i, i + 2^j - 1] = max(左半部分, 右半部分)
+            st[i][j] = max(st[i][j - 1], st[i + (1 << (j - 1))][j - 1]);
+        }
+    }
+}
+
+// 3. 查询区间 [L, R] 的最大值 (L, R 均为闭区间)
+int query(int L, int R) {
+    if (L > R) return -1e18; // 异常处理，返回一个极小值
+    int k = lg[R - L + 1];
+    return max(st[L][k], st[R - (1 << k) + 1][k]);
+}
+    \end{lstlisting}
+   
+    \subsubsection{字典树}
+    \begin{lstlisting}
+    		const int MAXN=1000005;
+		int trie[MAXN][26];//trie[u][c]代表节点u经过字符c到达的下一个节点是几号节点
+		int cnt[MAXN];//cnt[u]代表有多少个字符串经过了节点u
+		int tot=0;//当前节点总数
+		void insert(const string& s)//将s插入trie
+		{
+			int u=0;
+			for(char c:s)
+			{
+				int v=c-'a';
+				if(!trie[u][v]) trie[u][v]=++tot;
+				u=trie[u][v];
+				cnt[u]++;
+			}
+		}
+		ll query(const string& s)//查询s与当前trie中其他字符串的LCP(最长公共前缀长度)之和
+		{ 
+			int u=0;
+			ll ans=0;
+			for(char c:s)
+			{
+				int v=c-'a';
+				if(!trie[u][v])
+				break;
+				u=trie[u][v];
+				ans+=cnt[u];
+			}
+			return ans;
+		}
+    \end{lstlisting}
+    \subsubsection{字符串双哈希}
+    \begin{lstlisting}
+    		// 核心防御层：基于系统高精度时钟的随机数发生器
+mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
+
+// 生成随机进制 (Base)，限制在 [233, 100000] 之间的奇数
+long long generate_base() {
+    long long b = uniform_int_distribution<long long>(233, 100000)(rng);
+    return b % 2 == 0 ? b + 1 : b; 
+}
+
+// 全局统一的 Base，确保同一次评测中所有字符串使用相同的计算维度
+const long long BASE1 = generate_base();
+const long long BASE2 = generate_base();
+
+// 算法核心层：动态随机双哈希结构体
+struct DH {
+    // 固定的两套冷门大质数
+    const long long MOD1 = 1000004323;
+    const long long MOD2 = 1000000021;
+
+    int n;
+    vector<long long> h1, h2;
+    vector<long long> p1, p2;
+
+    // 初始化构造函数
+    DH(const string& s) {
+        n = s.length();
+        // 下标从 1 开始，预留 0 位作为边界，防止越界
+        h1.assign(n + 1, 0); h2.assign(n + 1, 0);
+        p1.assign(n + 1, 1); p2.assign(n + 1, 1);
+
+        for (int i = 1; i <= n; i++) {
+            // 字符映射，加 1 防止 'a'-'a'=0 带来的前导零失效问题
+            long long val = s[i - 1] - 'a' + 1; 
+
+            h1[i] = (h1[i - 1] * BASE1 + val) % MOD1;
+            h2[i] = (h2[i - 1] * BASE2 + val) % MOD2;
+
+            // 预处理 BASE 的幂次数组，用于 O(1) 提取
+            p1[i] = (p1[i - 1] * BASE1) % MOD1;
+            p2[i] = (p2[i - 1] * BASE2) % MOD2;
+        }
+    }
+
+    // O(1) 提取子串 [L, R] 的双哈希值 (1-based)
+    pair<long long, long long> get_hash(int L, int R) {
+        long long res1 = (h1[R] - h1[L - 1] * p1[R - L + 1]) % MOD1;
+        long long res2 = (h2[R] - h2[L - 1] * p2[R - L + 1]) % MOD2;
+        
+        // 抹平 C++ 负数取模的语言特性坑
+        if (res1 < 0) res1 += MOD1;
+        if (res2 < 0) res2 += MOD2;
+        
+        return {res1, res2};
+    }
+};
+
+/*int main() {
+    // 高压防 Hack 测试演示
+    string text = "abacabadabacaba";
+    DH dh(text);
+    
+    // 比较两个 "abacaba"
+    auto left_part = dh.get_hash(1, 7);
+    auto right_part = dh.get_hash(9, 15);
+    
+    if (left_part == right_part) {
+        cout << "匹配成功！本次运行采用的密钥 - BASE1: " << BASE1 << ", BASE2: " << BASE2 << endl;
+    }
+    
+    return 0;
+}*/
+    \end{lstlisting}
+    \subsubsection{马拉车}
+    \begin{lstlisting}
+    		// 极致封装的 Manacher 模板
+struct Manacher {
+    string t;       // 预处理后的字符串 (例如: "$#a#b#a#^")
+    vector<int> p;  // 回文半径数组
+
+    // 初始化并直接计算出所有的回文半径
+    Manacher(const string& s) {
+        // 1. 预处理：插入分隔符和边界符
+        t = "$#";
+        for (char c : s) {
+            t += c;
+            t += '#';
+        }
+        t += '^'; // 结尾加上不同的字符，巧妙省去 while 循环里的越界判断
+
+        int n = t.length();
+        p.assign(n, 0);
+        int C = 0, R = 0; // C: 当前护城河的中心, R: 护城河的最右边界
+
+        // 2. 核心 O(N) 推导
+        // 注意遍历范围：跳过开头 '$' 和结尾 '^'
+        for (int i = 1; i < n - 1; i++) {
+            // 如果 i 在保护伞 R 内部，直接白嫖镜像点 (2*C - i) 的半径
+            if (R > i) {
+                p[i] = min(R - i, p[2 * C - i]);
+            } else {
+                p[i] = 0;
+            }
+            // 尝试暴力向外扩展（如果匹配，半径增大）
+            while (t[i + 1 + p[i]] == t[i - 1 - p[i]]) {
+                p[i]++;
+            }
+            // 如果新扩展出的回文串越过了原来的右边界 R，更新护城河
+            if (i + p[i] > R) {
+                C = i;
+                R = i + p[i];
+            }
+        }
+    }
+
+    // 常用接口 1：获取整个字符串的最长回文子串的【长度】
+    int get_max_len() {
+        int max_len = 0;
+        for (int radius : p) {
+            max_len = max(max_len, radius);
+        }
+        return max_len;
+    }
+
+    // 常用接口 2：判断原串中闭区间 [L, R] 是否为回文串 (L, R 为 0-based 原串下标)
+    bool is_palindrome(int L, int R) {
+        // 原串下标映射到处理后的串 t 中的中心位置
+        // 原串的第 L 个字符在 t 中的位置是 2*L + 2
+        // 原串的第 R 个字符在 t 中的位置是 2*R + 2
+        int center = (2 * L + 2 + 2 * R + 2) / 2;
+        int len = R - L + 1;
+        // 如果该中心的最大回文半径 >= 所需长度，则说明该区间是回文串
+        return p[center] >= len;
+    }
+};
+
+/*int main() {
+    string s = "abacabad";
+    Manacher man(s);
+    
+    cout << "原串: " << s << endl;
+    cout << "最长回文子串长度: " << man.get_max_len() << endl; // 输出 7 (abacaba)
+    
+    // O(1) 查询任意区间是否为回文串
+    cout << "区间 [0, 2] (aba) 是否回文: " << (man.is_palindrome(0, 2) ? "是" : "否") << endl;
+    cout << "区间 [0, 3] (abac) 是否回文: " << (man.is_palindrome(0, 3) ? "是" : "否") << endl;
+
+    return 0;
+}*/
+    \end{lstlisting}
+    \subsubsection{KMP}
+    \begin{lstlisting}
+    		struct KMP {
+    string p;
+    vector<int> nxt;
+
+    // 构造函数：传入模式串，自动计算并初始化 next 数组
+    KMP(const string& pattern) : p(pattern) {
+        int m = p.length();
+        nxt.assign(m, 0);
+        if (m == 0) return;
+        
+        for (int i = 1, j = 0; i < m; i++) {
+            while (j > 0 && p[i] != p[j]) {
+                j = nxt[j - 1];
+            }
+            if (p[i] == p[j]) {
+                j++;
+            }
+            nxt[i] = j;
+        }
+    }
+
+    // 匹配函数：传入主串，返回所有匹配成功的起始下标（0-indexed）
+    vector<int> match(const string& s) {
+        vector<int> res;
+        int n = s.length(), m = p.length();
+        if (m == 0 || n < m) return res;
+
+        for (int i = 0, j = 0; i < n; i++) {
+            while (j > 0 && s[i] != p[j]) {
+                j = nxt[j - 1];
+            }
+            if (s[i] == p[j]) {
+                j++;
+            }
+            if (j == m) {
+                res.push_back(i - m + 1);
+                j = nxt[j - 1]; // 继续寻找下一个匹配
+            }
+        }
+        return res;
+    }
+};
+
+/*int main() {
+    string text = "ABABABA";
+    string pattern = "ABA";
+
+    // 1. 用模式串初始化 KMP 结构体（内部自动计算 next 数组）
+    KMP kmp(pattern);
+
+    // 2. 在主串中进行匹配
+    vector<int> result = kmp.match(text);
+
+    // 打印结果：0 2 4
+    for (int idx : result) {
+        cout << idx << " ";
+    }
+    cout << "\n";
+}*/
+
+    \end{lstlisting}
+     \subsubsection{关于pq里存node怎么写大小根堆}
+    \begin{lstlisting}
+    	bool operator<(const node& other)const{
+			return d>other.d;
+		}
+        如果小根堆里面就写大于号，大根堆就写小于号，反着来
+    \end{lstlisting}
+     \subsubsection{LIS和LNIS}
+    \begin{lstlisting}
+    		//LNIS
+			vector<int>dp(n+1,0);	
+			int len1=1;
+			dp[1]=a[1];
+			for(int i=2;i<=n;i++){
+				int pos=upper_bound(dp.begin()+1,dp.begin()+len1+1,a[i],greater<int>())-dp.begin();
+				 if(pos==len1+1){
+					len1++;
+					dp[len1]=a[i];
+				 }
+				 else{
+					dp[pos]=a[i];
+				 }
+			}
+			cout<<len1<<"\n";
+			//LIS
+			vector<int>dp1(n+1,0);
+			dp1[1]=a[1];
+			int len2=1;
+			for(int i=2;i<=n;i++){
+				int pos=lower_bound(dp1.begin()+1,dp1.begin()+len2+1,a[i])-dp1.begin();
+				if(pos==len2+1){
+					len2++;
+					dp1[len2]=a[i];
+				}
+				else{
+					dp1[pos]=a[i];
+				}
+			}
+			cout<<len2<<"\n";
+            //这里的dp[i]代表的是长度为i的递增子序列所能达到的最小结尾元素
+    Dilworth定理：把一个序列划分成最少数量的“不上升子序列”，其最少数量恰好等于原序列的“最长上升子序列（LIS）”的长度。
+    反之同理：把一个序列划分成最少数量的“上升子序列”，等于“最长不上升子序列（LNIS）”的长度。
+
+    对于递减数组，upper_bound是找第一个小于的，lower_bound是找第一个小于等于的，然后注意递减数组写的时候要最后加一个greater<int>().
+    \end{lstlisting}
+    \subsubsection{bitset}
+    \begin{lstlisting}
+    bitset是一个c++标准库的特殊容器，可以看作是一个固定长度的、超级巨大的二进制整数。
+    用法：在全局写bitset<长度>a，长度到一亿都没问题，而且注意必须得在全局写。
+    a[0]=1,含义就是把第0位改成1，第0位是最右边的个位。
+    如果要开多个bitset，就是开个bitset二维数组的话，就是bitset<长度>a[数组个数]。
+    \end{lstlisting}
+    \section{数据结构}
+    \subsection{trick}
+    \subsubsection{关于树状数组的感悟}
+    \begin{lstlisting}
+        树状数组最常见的应用场景就是：我正在从左往右(从右往左)扫描，需要快速统计之前出现过的某类数有多少个。
+
+        树状数组的下标，通常就是你想要比较大小的那个属性。比如经典的求逆序对，我遍历到i时我想知道前面有多少个数大于a[i],那这时候我们想要比较大小的属性显然就是a[i]对吧，所以把a[i]作为树状数组的下标，每次add(a[i],1);这里后面的加什么当然是根据题目来看了。
+
+        面对一道树状数组题时，先问自己：当我遍历到当前位置时，我想知道前面的哪些点，与当前点满足什么关系？这些点的某种属性的统计值是多少？把这句话理清楚了就知道怎么写add了。
+
+        如果要建多个树状数组，比如优化二维dp的时候，把tree改成vector<vector<int>>就行了，然后下面的add，query啥的多个参数就行，表示查询第几个树状数组。
+
+        树状数组和dp其实关系非常密切。因为你做dp的时候也经常会出现：当前状态=若干历史状态的贡献之和。而树状数组干的事情就是动态维护一批数的前缀和并快速查询。所以用树状数组优化dp是很常见的技巧。
+    \end{lstlisting}
+    \subsubsection{一个树状数组经典小trick}
+    \begin{lstlisting}
+        有的题需要我们“动态维护元素相对顺序”，比如把一个数放到最前面，在他前面的数依次向后移一位这种操作，如果真的要模拟那就是O(n)，多次操作就爆炸了。那么怎么办呢？
+        答案是：假设有n个数，m个操作，就开一个长度为n+m的数组。先把所有数放在数组的最右边，然后每次对一个数操作时，就直接把这个数放到当前第一个数的左边，然后他原来的位置就直接空着就好了。因为每次操作最多会向左拓展一个位置(除了对第一个数操作不会向左拓展)，所以m次操作最多拓展m个位置，这就是为什么把数组开成n+m的原因。
+        这样操作的话，我们每次只需要动一个数就好了，不需要牵一发而动全身的去动另外的数，然后后面要进行什么查询可以用树状数组完成，比如查询每个元素在移动过程中到达过的最大最小位置什么的。
+    \end{lstlisting}
+    \subsection{板子}
+    \subsubsection{并查集} % 小标题
+    \begin{lstlisting}
+        //并查集的所有操作都是近似O(1)的，不用怕t
+        //并查集可以维护每个连通块的最大最小值，加个mx,mn数组，先初始化为每个点自己的值，merge的时候更新一下就行了。
+        struct dsu {
+    vector<int> fa, sz;
+    int cnt; // 当前集合数量（连通块数量）
+
+    dsu(int n = 0) {
+        init(n);
+    }
+
+    // 初始化
+    void init(int n) {
+        fa.resize(n + 1);
+        sz.assign(n + 1, 1);
+        iota(fa.begin(), fa.end(), 0);
+        cnt = n;
+    }
+
+    // 查找根节点 + 路径压缩
+    int find(int x) {
+        if (fa[x] == x) return x;
+        return fa[x] = find(fa[x]);
+    }
+
+    // 合并两个集合
+    // 返回 true 表示成功合并
+    // 返回 false 表示原本就在同一个集合
+    bool merge(int x, int y) {
+        x = find(x);
+        y = find(y);
+
+        if (x == y) return false;
+
+        // 按大小合并
+        if (sz[x] < sz[y]) swap(x, y);
+
+        fa[y] = x;
+        sz[x] += sz[y];
+
+        cnt--;
+        return true;
+    }
+    // 判断是否属于同一个集合
+    bool same(int x, int y) {
+        return find(x) == find(y);
+    }
+    // 查询 x 所在集合的大小
+    int size(int x) {
+        return sz[find(x)];
+    }
+};
+    \end{lstlisting}
+    \subsubsection{树状数组}
+    \begin{lstlisting}
+        //注意树状数组必须是1-base，就是你不能add(0,1)，这样会死循环。
+        //注意如果数据范围达到1e9这种，树状数组开不了这么大，可以离散化。
+        //注意如果用树状数组处理前缀和的话，不要忘记考虑pre[i]-pre[0]的情况了，就是说别忘记把pre[0]也add到树状数组里面。
+        struct BIT {
+    int n;
+    vector<long long> tree;
+
+    BIT(int n) {
+        init(n);
+    }
+
+    void init(int n) {
+        this->n = n;
+        tree.assign(n+1,0);
+    }
+
+    int lowbit(int x) {
+        return x & -x;
+    }
+
+    // 单点增加
+    void add(int x,long long k) {
+        while(x<=n) {
+            tree[x]+=k;
+            x+=lowbit(x);
+        }
+    }
+
+    // 查询 [1,x]
+    long long query(int x) {
+        long long ans=0;
+
+        while(x>0) {
+            ans+=tree[x];
+            x-=lowbit(x);
+        }
+
+        return ans;
+    }
+
+    // 查询 [l,r]
+    long long Query(int l,int r) {
+        return query(r)-query(l-1);
+    }
+};
+    \end{lstlisting}
+    \section{图论}
+    \subsection{trick}
+    \subsubsection{MST与BST的关系，瓶颈问题}
+    \begin{lstlisting}
+    MST：最小生成树  BST：瓶颈生成树
+    瓶颈生成树的定义：所有生成树中，最大边权最小的那棵树
+    **任何图的MST，必定是BST。//但是BST不一定是MST
+    只要看到题目有“\textbf{使得所有路径的最大边权最小}”“\textbf{...最大距离最小}”直接写MST
+    对于图上任意两点之间“最大边权最小”的路径是mst上的路径。
+    \end{lstlisting}
+    \subsubsection{最大生成树}
+    \begin{lstlisting}
+    要得到一个图的最大生成树，其实最简单的方法就是对图的每个边权先取反，然后求最小生成树就行了。
+    与mst“最大边权最小”的性质一样，最大生成树有“最小边权最大”的性质。
+    \end{lstlisting}
+    \subsubsection{聚类问题}
+    \begin{lstlisting}
+    聚类问题就是说：有一堆离散的点，你要把他们分成k个连通块，就是聚在一起嘛，然后要满足一些条件，比如连通块之间最大距离最小，或者连通块内部的最小距离最大这样子。
+    这类问题其实挺典的吧我觉得，代码都不用怎么改。
+    我现在见过的就四种情况，其实就是连通块内部还是外部，最大距离最小还是最小距离最大排列组合得到的。
+    
+    如果是块外部，那么相当于刚开始的“候选人”是所有边，然后你每连一条边就相当于把它从候选人里去掉。如果你是要求最大距离最小，那想一想，一个升序数组，你要去掉一些值，使剩下的最大值最小，那肯定是从大到小去对吧，那搞个最大生成树把边排下序取其中第n-k项什么的（具体问题具体分析）就行了。然后如果是最小距离最大，那就是最小生成树。
+
+    如果是块内部，那么相当于刚开始得候选人是空集，你每连一条边就是把这条边加到候选人里面。如果你要求最大距离最小，那肯定是从小往大加边对吧，那就是搞最小生成树。反过来一样的，用最大生成树即可。
+
+    聚类问题一般都是给坐标，就是隐式图形式，所以用prim解决（至少我现在只见过坐标形式，可能还有其他的但是我没见过）。然后用prim的过程中有些注意事项，详情见板子的prim部分。
+    \end{lstlisting}
+    \subsubsection{拓扑排序接dp（DAG上的dp）}
+    \begin{lstlisting}
+    对一个DAG拓扑排序后，对得到的线性序列做dp是很常用的技巧，因为拓扑排序完美解决了dp最苛刻的前提条件——无后效性。
+    你站在节点u准备更新别人时，所有能影响u的前置节点一定都已经计算完毕了。
+    而且DAG上dp往往用“刷表法”，意思就是站在u去更新后面的在adj[u]中的v，与之相对的“填表法”意思就是准备更新v，发现前面的u还没算，于是先算u再把u的值拉回来。在dag上做dfs用填表法会更自然，做dp用刷表法会更顺畅。
+    dagdp可以解决很多问题，例如dag上的最短路最长路，从起点到终点有多少种路径，图上博弈论，附带背包或多维度的条件极值...
+    \end{lstlisting}
+    \subsubsection{scc->dagdp}
+    \begin{lstlisting}
+    因为scc缩点之后得到的就是一个dag，所以scc接dagdp是非常常见且固定的套路。具体操作就是scc完之后遍历每个点的每条边，如果u，v的sccid不相等就连条边在sccid[u],sccid[v].dag就建好了，然后后面就正常dagdp。
+     vector<pair<int, int>> edges; // 拿个小本本把边记下来
+            
+            for(int i=1; i<=n; i++){
+                for(auto x: g.adj[i]){
+                    int u = g.scc_id[i];
+                    int v = g.scc_id[x];
+                    if(u != v){
+                        edges.push_back({u, v}); // 先不急着建图，全存起来
+                    }
+                }
+            }
+            
+            // 核心魔法：排序 + 去重
+            sort(edges.begin(), edges.end());
+            edges.erase(unique(edges.begin(), edges.end()), edges.end());
+            topo ts(g.scc_cnt);
+            // 现在 edges 里面绝对没有重边了，安心建图
+            for(auto e : edges){
+                ts.add_edge(e.first, e.second);
+            }
+            //这就是scc之后建dag的代码，因为可能有重边所以需要去重
+    \end{lstlisting}
+    \subsubsection{dag至少加几条边能变成一个scc?}
+    \begin{lstlisting}
+    一个dag至少加max(入度为0的点的个数，出度为0的点的个数)能变成一个scc，注意一个特判是如果只有一个点那答案是0。
+    只要你入度为0，那么想要变成scc，是必须从其他点连一条边到这个点的，同样的出度为0也必须从这个点连个边到其他点才有可能变成scc。相当于加边个数是>=max(入度0个数，出度0个数)，相当于证明了必要性吧。然后，你只要把入度为0和出度为0的两点之间连边，就一定能在只给入度/出度为0的点连边的情况下使其变成scc，相当于证明了充分性 
+    但是你想要构造的话有点麻烦，主要想法是错位着去连，就是如果两个点之间已经有一条边，那尽量避免去再连一条，因为这样只能形成一个两个点的小环，不优。
+    \end{lstlisting}
+    \subsubsection{题目没说有多少个点并且点不一定连续怎么建图初始化}
+    \begin{lstlisting}
+        如果告诉你一个节点个数上限，比如1000，2e5这样比较小的，可以先初始化为g(1005),g(200005)这样，然后在struct里建一个exist布尔数组，在add_edge的时候把出现的边在exist里标记为true，跑tarjan的时候只遍历存在的点。
+    \end{lstlisting}
+    \subsubsection{记录scc内部边权之和}
+    \begin{lstlisting}
+        其实看到这个问题我第一眼想法是在tarjan内部dfs过程中怎么记录一下边权，但其实没必要，直接跑完scc之后遍历每条边，然后如果这条边的两个端点属于同一个scc，就把对应的scc权值和加上这条边的权值。事先创个vector<node>edge，读入每条边的时候记录一下就行。
+    \end{lstlisting}
+    \subsubsection{求dag上特定起点最长路}
+    \begin{lstlisting}
+        求dag上最长路显然用dagdp，但是如果有特定起点的话呢，这里要注意拓扑序不能表示连通关系，所以直接从起点处开始dp是不行的，因为后面的点可能根本就跟起点不连通。所以采用的方法是把dp值都初始化为-INF，只把起点赋值。遍历到一个点如果他的dp值是-INF那么代表起点到不了他，直接continue。这样所有dp值被更新的点都是和起点连通的点，不连通的一直保持-INF。其实就相当于搞了个vector<bool>vis标记一下，true代表可达，false代表不可达。
+    \end{lstlisting}
+    \subsubsection{判断无向图中有没有环,以及看这个环是几元环}
+    \begin{lstlisting}
+        看无向图有没有环直接从任意起点开始dfs遍历一遍整个图就行了，如果遍历到一个节点，去看他连的其他点，如果有一个点已经被访问过且不是他的父节点，那肯定就是出现了环。
+        然后看是几元环的话也很简单，就是加个深度数组vector<int>dep，在dfs过程中顺手给每个点标记一下深度，然后在发现一个已经访问过的节点v时，dep[u]-dep[v]+1就是边数。
+    \end{lstlisting}
+    \subsubsection{一些关于scc的感悟}
+    \begin{lstlisting}
+        看到形如“只要u怎么样，v就必须怎么样”这种约束关系，就可以尝试u->v这样连边然后看怎么用scc可以搞一下，因为这些约束关系就导致了他们是相互依赖无法拆分的整体，自然就想到缩点。
+        看到形如“我要从一堆点的集合中选出一个子集，要求子集中的每个点的每条边都必须连向子集内的点，即不能有出边连向不在子集内的点，再概括的说就是子集对于出边封闭”，那么这时候我们也可以很自然的想到scc。为什么呢，因为我们想象对一个图scc之后建的dag，这时候每个scc内部就是出边封闭的。它的出边都体现在dag的连边上。所以如果我们想要找到一个出边封闭的集合，那出度=0的scc里的所有点就是一个合法集合。
+        然后就是，scc不仅可以作为一种分析工具，就是我有一些性质，然后我自然想到用scc去缩点，简化问题，还可以作为一种构造工具，就是说要求我构造出一个合法的集合，然后我尝试scc一下看看会发生什么，然后发现，欸，如果我直接把出度为0的scc里的所有点作为我选的集合，不就是一个成功的构造吗？
+
+        有向图中只要两个点相互可达，那么他们一定在一个scc中；只要两个点不相互可达，那么他们一定不在一个scc中。这个问题看起来很蠢，但是我在学2-sat的时候真的问了这样的问题；“有没有可能两个点相互可达但是不在同一个scc中？”可以用反证法来想，假设有两个点真的相互可达但是他们不在一个scc中，那么他们俩所在的scc之间就会连一条双向边，但scc缩完点必然是一个dag，矛盾。或者直接从定义去想，如果两个点相互可达，那么不管其他点，他们俩至少能形成一个两个点的scc。
+        这个结论换个话说就是，如果要判断两个点是否相互可达，那么看他们是不是在同一个scc中就行了，这是充要条件。这也就是2-sat的核心结论。
+
+        缩点dag中如果有边a->b,那么scc_id[a]>scc_id[b]，也就是说tarjan分配scc_id的顺序是逆拓扑序。注意这里是“每个scc弹栈时编号递增写法”就会这样，换个写法可能就相反了。
+        也就是说，如果缩点dag中，a~>b(意思是a可达b)，那么scc_id[a]>scc_id[b],但是注意反过来并不成立，因为scc_id是一定要有大小关系的，就算你的a和b并没有直接相连关系(也就是并列关系)，也不能两个id相等，一定会有一个大小关系。
+    \end{lstlisting}
+    \subsubsection{有环的连通块删一条边后不一定依旧保持连通}
+    \begin{lstlisting}
+        这个问题看起来很蠢很显然，但是我做题的时候就想当然了。
+        有环的连通块的边，可以分为在环上的边，和不在环上的边，也就是桥。你删掉在环上的边会依旧保持连通，但是删掉桥会割成两部分。
+        那要怎么知道，或者说在连边的时候记录在环上的边呢，其实很简单，就是用并查集，u和v连边时merge(u,v),如果发现u和v已经在同一个连通块了那肯定这条边就是在环上的边对吧。
+    \end{lstlisting}
+    \subsubsection{拓扑排序如果有自环也会触发判断有环}
+    \begin{lstlisting}
+        没什么好说的，注意一下就行了。
+    \end{lstlisting}
+    \subsubsection{dagdp可以跟bitset搭配使用}
+    \begin{lstlisting}
+        dagdp有时候是可以跟bitset一起搭配使用的，比如要你求一个有向图中每个点可以到达的点数，那就可以搞一个bitset数组，对每个点都搞一个bitset，用来记录他可以到达哪些点，然后dp转移就是dp[u]|=dp[v]，意思就是有条边u->v，那么v能到的点u都能到，所以|一下，这也是bitset的合并的通用方式吧。
+        还有一个点就是如果点太多，或者说点多才是常见情况吧，比如n=2e5，那你要开个2e5*2e5的二维数组(二维bitset数组的内存占用可以看作二维数组，但是一维bitset可以开非常大)，那就爆爆的爆了。所以我们需要分块bitset。
+        分块bitset的意思就是，每次只处理少量点，处理多次把答案加起来。比如n=5e4的话，你每次处理64个数，处理700多次就行了，时间上64*700非常小，空间上2e5*64也非常小。比如上面那个例题，就是你每次去看所有点能否到达你给定的64个点，然后处理700多次把每次能到达的点数加起来。
+        分块bitset的精髓在哪呢，就是我们的问题就是你编号太大的话装不下对吧，比如来个10000编号，你没法开那么大的bitset数组，那么你每次只处理64个点，你把他们的编号都映射到[0,63]上面，比如你要处理[256,319],就映射成[0,63]。每次只用开64长度的bitset数组。
+    \end{lstlisting}
+    \subsubsection{对于无向连通图，删k条边最多增加k个连通块}
+    \begin{lstlisting}
+        这个结论其实很显然吧，你删一条边最多只能把一个连通块分成两个，也就是增加一个，那删k条边就最多增加k个。
+        而且你试想一下，怎么可能删一条边把一个连通块分成三个呢？
+    \end{lstlisting}
+    \subsubsection{怎么求一个无向图删掉一条桥后，分成的两个连通块各自的节点数？}
+    \begin{lstlisting}
+        其实这个也很简单，只要在tarjan里加一个数组sz,sz[i]表示i节点的子树大小，然后你割掉一个桥，儿子一侧的子树大小就是其中一个块的数量对吧，然后另一块当然就是用n-这一块(注意这个是原图是连通的情况，如果不连通那应该用这个连通块的大小-这一块)。
+        然后注意必须是儿子一侧的大小，如果是父亲一侧的子树大小那是没意义的，不是任何一块的大小，自己想象一下就知道了。所以我们在遍历到一个桥的时候，按照我们之前的想法就是把sz[儿子]取出来，那么问题来了，怎么知道哪边是儿子呢？显然如果要等到调用的时候再去找谁是儿子是很困难的(后来才发现其实并非困难，所以下面的方法也不是很必要了。。详情见下一节。。)，所以不妨再设一个bsz(bridge_sz)数组，记录每个桥如果被割能形成的其中一个连通块的大小。具体操作就是：直接在dfs发现一条桥的时候就把这个桥的bsz[id]设为sz[v]，这个v是儿子。
+        然后我们遍历到一个桥直接取这个桥的bsz就行了。记录bsz的代码如下：
+                if (low[v] > dfn[u]) {
+                    br[id] = 1;
+                    bsz[id]=sz[v];
+                }
+        哦对了，还没说怎么求sz，这个也很简单，就是先把所有点的sz都初始化为1，因为他们初始只有自己一个点嘛，然后dfs过程中对于一个u对他的所有儿子v进行sz[u]+=sz[v]就行了，很容易理解。
+        能这样做的一个关键点在于，你在发现一个桥的时候，是已经把儿子节点v，或者说儿子这一侧的子树的所有节点的low，sz什么的都算好了的，所以才能直接bsz[id]=sz[v]，直接记录这个桥的bsz，我是这么想的。
+        
+        然后还有一个要注意的点是，或者说我们需要理解的点是，\textbf{桥两侧大小是图本身的性质，而不是dfs树的性质，dfs只是帮助我们计算的工具}。什么意思呢，就是你不管以哪个点为起点进行dfs，不论你形成的dfs树是什么形态，图本身的性质并不会因此而改变，也就是说桥并不会改变，原来是桥，并不会因为你换个dfs顺序就变成不是桥，因为图本身没变，而且你割掉一条桥后两边的块大小也不会改变的，这个非常好理解对吧。而dfs树只是我们求解它的方式，我们以不同的起点来dfs，构建出来的dfs树长得不一样，但是求出来的答案肯定都是对的。影响的只是，你在一个桥上哪边是儿子节点，这个桥的bsz取哪边节点的sz。(这么想其实很容易发现一个桥的bsz在不同的dfs树下最多只能有两个取值，对应两边的子树大小。没什么用但是有助于增进理解吧我个人感觉。)
+    \end{lstlisting}
+    \subsubsection{怎么快速知道一个无向图中的一条边，在dfs树中谁是儿子？}
+    \begin{lstlisting}
+        如果是比较一条树上边，那么直接比较他们的dfn就行了，dfn大的肯定就是儿子。
+        如果是一条非树边，那么就不能直接比较dfn了，要更复杂一点，具体我还没弄清楚。
+    \end{lstlisting}
+    \subsubsection{无向图中桥必定在dfs树上}
+    \begin{lstlisting}
+        这个也很显然。因为你桥割了那整个图都不连通了，那dfs树怎么可能不经过桥就能遍历完整张图呢对吧。
+    \end{lstlisting}
+    \subsubsection{对于一个无向图，在环上的边一定不是桥,不在环上的边一定是桥}
+    \begin{lstlisting}
+        这个结论也很显然，前面其实也提到过，但还是单独拿出来说一下吧。
+        你删掉一个在环上的边，肯定不会破坏原图的连通性；反之，删掉一条不在环上的边，肯定会破坏连通性。很好理解。
+    \end{lstlisting}
+    \subsection{板子}
+    \subsubsection{拓扑排序}
+    \begin{lstlisting}
+        struct TopoSort {
+    int n;
+    vector<vector<int>> adj;
+    vector<int> in_deg;
+    vector<int> order; // 存储最终的拓扑序列
+
+    // 构造函数，_n 为节点总数。默认开 _n+1 的空间，兼容编号 1~n 或 0~n-1
+    TopoSort(int _n) {
+        init(_n);
+    }
+
+    // 初始化/重置，适合多组测试数据
+    void init(int _n) {
+        n = _n;
+        adj.assign(n + 1, vector<int>());
+        in_deg.assign(n + 1, 0);
+        order.clear();
+    }
+
+    // 添加一条从 u 到 v 的有向边
+    void add_edge(int u, int v) {
+        adj[u].push_back(v);
+        in_deg[v]++;
+    }
+
+    // 执行拓扑排序。返回 true 表示图无环且排序成功；返回 false 表示图中存在环
+    bool build() {
+        queue<int> q;
+        // 注意：如果你是 0-indexed，这里的循环应该是 i = 0; i < n; i++
+        // 这里默认采用最常见的 1-indexed (1 到 n)
+        for (int i = 1; i <= n; i++) {
+            if (in_deg[i] == 0) {
+                q.push(i);
+            }
+        }
+
+        order.clear();
+        while (!q.empty()) {
+            int u = q.front();
+            q.pop();
+            order.push_back(u);
+
+            for (int v : adj[u]) {
+                if (--in_deg[v] == 0) { // 入度减 1，若减为 0 则入队
+                    q.push(v);
+                }
+            }
+        }
+        
+        // 如果序列中的节点数等于图的总节点数，说明无环
+        return order.size() == n; 
+    }
+};
+
+/*void solve() {
+    int n, m; 
+    cin >> n >> m; // n 个点，m 条边
+
+    // 1. 实例化拓扑排序对象
+    TopoSort ts(n);
+
+    // 2. 建图
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        cin >> u >> v;
+        ts.add_edge(u, v);
+    }
+
+    // 3. 执行算法并判断是否有环
+    if (ts.build()) {
+        cout << "拓扑序为: ";
+        for (int u : ts.order) {
+            cout << u << " ";
+        }
+        cout << "\n";
+    } else {
+        cout << "图中存在环，无法进行拓扑排序！\n";
+    }
+}
+*/
+    \end{lstlisting}
+    \subsubsection{dagTR(传递约简)}
+    \begin{lstlisting}
+        //注意这个传递约简复杂度有点复杂，简要记一下是5000通常可以，10000就有点极限了，可以尝试一下，再往上就最好别考虑了。
+struct dagTR{
+    using ull = unsigned long long;
+
+    int n;
+    topo tp;
+    vector<vector<int>> res;
+
+    dagTR(int _n) : n(_n), tp(_n) {}
+
+    // 添加有向边
+    void add_edge(int u, int v) {
+        tp.add_edge(u, v);
+    }
+
+    // 执行传递约简
+    // 返回 false 表示原图不是 DAG
+    bool build() {
+        res.assign(n + 1, {});
+
+        // 1. 拓扑排序
+        if (!tp.build()) return false;
+
+        vector<int> pos(n + 1);
+        for (int i = 0; i < n; i++) {
+            pos[tp.order[i]] = i;
+        }
+
+        // 2. 求每个点的可达集合
+        int W = (n + 64) / 64;
+
+        vector<vector<ull>> reach(
+            n + 1, vector<ull>(W, 0)
+        );
+
+        for (int i = n - 1; i >= 0; i--) {
+            int u = tp.order[i];
+
+            reach[u][u >> 6] |= 1ULL << (u & 63);
+
+            for (int v : tp.adj[u]) {
+                for (int j = 0; j < W; j++) {
+                    reach[u][j] |= reach[v][j];
+                }
+            }
+        }
+
+        // 3. 传递约简
+        for (int u = 1; u <= n; u++) {
+            auto adj = tp.adj[u];
+
+            sort(adj.begin(), adj.end(),
+                [&](int a, int b) {
+                    return pos[a] < pos[b];
+                }
+            );
+
+            vector<ull> vis(W, 0);
+
+            for (int v : adj) {
+                // 已经能够到达 v，说明这条边冗余
+                if ((vis[v >> 6] >> (v & 63)) & 1ULL) {
+                    continue;
+                }
+
+                // 保留这条边
+                res[u].push_back(v);
+
+                // 更新可达集合
+                for (int j = 0; j < W; j++) {
+                    vis[j] |= reach[v][j];
+                }
+            }
+        }
+
+        return true;
+    }
+};
+/*用法示例
+//注意要把struct topo放在这个dagTR上面，这个板子是依赖于topo的。
+int n, m;
+cin >> n >> m;
+dagTR tr(n);
+
+for (int i = 1; i <= m; i++) {
+    int u, v;
+    cin >> u >> v;
+    tr.add_edge(u, v);
+}
+
+if (!tr.build()) return;
+
+auto &g = tr.res;
+// g 就是传递约简后的邻接表
+
+// 正常遍历邻接表 
+for (int u = 1; u <= n; u++) {
+    for (int v : g[u]) {
+        cout << u << " -> " << v << '\n';
+    }
+}
+*/
+    \end{lstlisting}
+     \subsubsection{欧拉回路}
+    \begin{lstlisting}
+    void hierholzer(int u)
+{
+    stack<int>sk;
+    sk.push(u);
+    vector<int>path;
+    while(!sk.empty())
+    {
+        int t=sk.top();
+        if(adj[t].empty())
+        {
+            path.pb(t);
+            sk.pop_back();
+        }
+        else
+        {
+            int v=adj[t].back();
+            adj[t].pop_back();
+            sk.push(v);
+        }
+    }
+}
+    \end{lstlisting}
+      \subsubsection{Dijkstra}
+    \begin{lstlisting}
+    		#include<bits/stdc++.h>
+		using namespace std;
+		using ll = long long;
+		#define pb push_back
+		#define pii pair<int,int>
+		#define int long long
+		#define i128 __int128
+        #define ull unsigned long long
+        const int INF=2e18;
+
+        
+    struct Dij {
+    
+
+    struct Edge {
+        int to;
+        long long weight;
+    };
+
+    int n; // 节点数
+    vector<vector<Edge>> adj; // 邻接表
+    vector<long long> dist;   // 距离数组
+	vector<int>pre;
+	vector<int>path;
+    // 构造函数，初始化大小
+    Dij(int _n) {
+        n = _n;
+        adj.resize(n + 1);
+        dist.assign(n + 1, INF);
+		pre.assign(n+1,0);
+    }
+
+    // 添加无向边
+    void add_edge(int u, int v, long long w) {
+        adj[u].push_back({v, w});
+        adj[v].push_back({u, w}); 
+    }
+
+    // 运行 Dijkstra 算法求解单源最短路
+    void run(int start) {
+        // 如果对同一个图多次查询，需要每次重置距离数组
+        dist.assign(n + 1, INF); 
+        dist[start] = 0;
+		pre.assign(n+1,0);
+        priority_queue<pair<long long, int>, vector<pair<long long, int>>, greater<pair<long long, int>>> pq;
+        pq.push({0, start});
+
+        while (!pq.empty()) {
+            auto [d, u] = pq.top();
+            pq.pop();
+
+            if (d > dist[u]) continue;
+
+            for (const auto& edge : adj[u]) {
+                int v = edge.to;
+                long long weight = edge.weight;
+
+                if (dist[u] + weight < dist[v]) {
+                    dist[v] = dist[u] + weight;
+                    pq.push({dist[v], v});
+					pre[v]=u;
+                }
+            }
+        }
+    }
+
+    // 获取起点到目标点的最短距离
+    long long get_dist(int target) {
+        return dist[target];
+    }
+	void get_path(int n){
+		int cur=n;
+		while(pre[cur]!=0){
+			path.pb(cur);
+			cur=pre[cur];
+		}
+		path.pb(1);
+		reverse(path.begin(),path.end());
+	}
+};
+
+/*int main() {
+    // 实例化结构体，传入节点数量
+    Dijkstra graph(n);
+    // 读入边
+    for (int i = 0; i < m; ++i) {
+        int u, v;
+        long long w;
+        cin >> u >> v >> w;
+        graph.add_edge(u, v, w);
+    }
+    int start_node = 1;
+    // 运行算法
+    graph.run(start_node);
+
+    // 获取结果
+    long long ans = graph.get_dist(n);
+    if (ans == graph.INF) {
+        cout << -1 << "\n";
+    } else {
+        cout << ans << "\n";
+    }
+}*/
+    \end{lstlisting}
+    \subsubsection{Johnson}
+    \begin{lstlisting}
+    		struct Johnson {
+    const long long INF = 1e18; // 极大值
+
+    struct Edge {
+        int to;
+        long long weight;
+    };
+
+    int n; 
+    vector<vector<Edge>> adj; // 邻接表
+    vector<long long> h;      // 势能数组
+    vector<long long> dist;   // 单次查询的真实距离数组
+
+    // 构造函数，初始化大小
+    Johnson(int _n) {
+        n = _n;
+        // 分配 n+1 的空间，0号点作为超级源点保留
+        adj.resize(n + 1);
+        h.assign(n + 1, INF);
+        dist.assign(n + 1, INF);
+    }
+
+    // 添加有向边（带负权的图通常是有向图，若存在无向负权边则必然是负权环）
+    void add_edge(int u, int v, long long w) {
+        adj[u].push_back({v, w});
+    }
+
+    // 步骤 1：运行 SPFA 计算势能，返回 false 表示存在负权环
+    bool build_potential() {
+        h.assign(n + 1, INF);
+        vector<int> cnt(n + 1, 0);
+        vector<bool> inq(n + 1, false);
+        queue<int> q;
+
+        // 超级源点 0 初始化
+        h[0] = 0;
+        q.push(0);
+        inq[0] = true;
+
+        // 建立超级源点到所有点的 0 权边
+        for (int i = 1; i <= n; ++i) {
+            adj[0].push_back({i, 0});
+        }
+
+        while (!q.empty()) {
+            int u = q.front();
+            q.pop();
+            inq[u] = false;
+
+            for (const auto& edge : adj[u]) {
+                int v = edge.to;
+                long long weight = edge.weight;
+
+                if (h[u] + weight < h[v]) {
+                    h[v] = h[u] + weight;
+                    if (!inq[v]) {
+                        q.push(v);
+                        inq[v] = true;
+                        cnt[v]++;
+                        // 包含超级源点共 n+1 个节点，松弛次数超标即为负权环
+                        if (cnt[v] >= n + 1) return false; 
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    // 步骤 2：以 start 为起点运行 Dijkstra
+    void run_dijkstra(int start) {
+        dist.assign(n + 1, INF);
+        dist[start] = 0;
+
+        priority_queue<pair<long long, int>, vector<pair<long long, int>>, greater<pair<long long, int>>> pq;
+        pq.push({0, start});
+
+        while (!pq.empty()) {
+            auto [d, u] = pq.top();
+            pq.pop();
+
+            if (d > dist[u]) continue;
+
+            for (const auto& edge : adj[u]) {
+                int v = edge.to;
+                long long weight = edge.weight;
+                
+                // 核心：使用势能修改后的非负边权计算
+                long long new_weight = weight + h[u] - h[v];
+
+                if (dist[u] + new_weight < dist[v]) {
+                    dist[v] = dist[u] + new_weight;
+                    pq.push({dist[v], v});
+                }
+            }
+        }
+
+        // 算法结束后，将计算出的距离还原为真实距离
+        for (int i = 1; i <= n; ++i) {
+            if (dist[i] != INF) {
+                dist[i] = dist[i] - h[start] + h[i];
+            }
+        }
+    }
+
+    // 获取起点到目标点的真实最短距离
+    long long get_dist(int target) {
+        return dist[target];
+    }
+};
+
+/*用法示例：
+int main() {
+    int n = 4, m = 5;
+    Johnson graph(n);
+
+    // 1. 建图
+    graph.add_edge(1, 2, 2);
+    graph.add_edge(2, 3, -4); // 负权边
+    // ...读入其余边
+
+    // 2. 检查负权环并构建势能
+    if (!graph.build_potential()) {
+        cout << "图里存在负权环，无法求解最短路！\n";
+        return 0;
+    }
+
+    // 3. 对需要的起点跑 Dijkstra
+    int start_node = 1;
+    graph.run_dijkstra(start_node);
+
+    // 4. 获取结果
+    long long ans = graph.get_dist(3); // 获取 1 到 3 的真实距离
+    if (ans == graph.INF) {
+        cout << "不可达\n";
+    } else {
+        cout << ans << "\n";
+    }
+
+    return 0;
+}
+*/
+    \end{lstlisting}
+    \subsubsection{SPFA}
+    \begin{lstlisting}
+    	struct SPFA {
+    const long long INF = 1e18; // 极大值
+
+    struct Edge {
+        int to;
+        long long weight;
+    };
+
+    int n; 
+    vector<vector<Edge>> adj; // 邻接表
+    vector<long long> dist;   // 距离数组
+
+    // 构造函数，初始化大小
+    SPFA(int _n) {
+        n = _n;
+        adj.resize(n + 1);
+        dist.assign(n + 1, INF);
+    }
+
+    // 添加有向边
+    void add_edge(int u, int v, long long w) {
+        adj[u].push_back({v, w});
+    }
+
+    // 运行 SPFA，返回 false 表示存在负权环，返回 true 表示正常求出最短路
+    bool run(int start) {
+        dist.assign(n + 1, INF); 
+        vector<int> cnt(n + 1, 0);       // 记录节点入队次数
+        vector<bool> inq(n + 1, false);  // 记录节点是否在队列中
+        queue<int> q;
+
+        dist[start] = 0;
+        q.push(start);
+        inq[start] = true;
+        cnt[start] = 1; // 起点第一次入队
+
+        while (!q.empty()) {
+            int u = q.front();
+            q.pop();
+            inq[u] = false;
+
+            for (const auto& edge : adj[u]) {
+                int v = edge.to;
+                long long weight = edge.weight;
+
+                if (dist[u] + weight < dist[v]) {
+                    dist[v] = dist[u] + weight;
+                    if (!inq[v]) {
+                        q.push(v);
+                        inq[v] = true;
+                        cnt[v]++;
+                        // 如果某个点入队次数达到 n 次，说明必然绕了负权环
+                        if (cnt[v] >= n) return false; 
+                    }
+                }
+            }
+        }
+        return true; 
+    }
+
+    long long get_dist(int target) {
+        return dist[target];
+    }
+};
+
+/*
+int main() {
+    int n = 4;
+    SPFA graph(n);
+
+    // 建图
+    graph.add_edge(1, 2, 2);
+
+    int start_node = 1;
+    
+    // 运行算法并拦截负权环
+    if (!graph.run(start_node)) {
+        cout << "图中存在负权环，最短路无解！\n";
+    } else {
+        long long ans = graph.get_dist(3);
+        if (ans == graph.INF) {
+            cout << "不可达\n";
+        } else {
+            cout << "起点到 3 号点的最短距离为: " << ans << "\n";
+        }
+    }
+    return 0;
+}*/
+	
+    \end{lstlisting}
+    \subsubsection{Bellman}
+    \begin{lstlisting}
+    struct BellmanFord {
+    const long long INF = 1e18;
+
+    // 直接存储每一条完整的边
+    struct Edge {
+        int u, v;
+        long long weight;
+    };
+
+    int n;
+    vector<Edge> edges;     // 边集数组
+    vector<long long> dist; // 距离数组
+
+    BellmanFord(int _n) {
+        n = _n;
+        dist.assign(n + 1, INF);
+    }
+
+    // 添加有向边
+    void add_edge(int u, int v, long long w) {
+        edges.push_back({u, v, w});
+    }
+
+    // 运行算法，k 表示“最多允许经过 k 条边”
+    void run(int start, int k) {
+        dist.assign(n + 1, INF);
+        dist[start] = 0;
+
+        // 严格限制外层循环跑 k 轮
+        for (int i = 0; i < k; ++i) {
+            // 核心防御：备份上一轮的距离，防止本轮发生越级“串联”更新
+            vector<long long> backup = dist; 
+            bool relaxed = false; // 剪枝优化标记
+
+            for (const auto& edge : edges) {
+                int u = edge.u, v = edge.v;
+                long long w = edge.weight;
+
+                // 必须使用 backup[u] 去更新别人
+                if (backup[u] != INF && backup[u] + w < dist[v]) {
+                    dist[v] = backup[u] + w;
+                    relaxed = true;
+                }
+            }
+            
+            // 如果某跑完所有边都没有任何更新，说明已经触碰到了绝对最短路，可以直接中止
+            if (!relaxed) break;
+        }
+    }
+
+    long long get_dist(int target) {
+        return dist[target];
+    }
+};
+
+/*
+int main() {
+    int n = 3;
+    BellmanFord graph(n);
+
+    // 建图
+    graph.add_edge(1, 2, 5);
+
+    int start_node = 1;
+    int k = 1; // 限制最多只能走 1 条边
+
+    // 运行算法，传入起点和最大边数限制
+    graph.run(start_node, k);
+
+    long long ans = graph.get_dist(3);
+    
+    // 如果 k=1，1->3 只能走 15 的直达边，结果是 15。
+    // 如果 k=2，1->2->3 才能走通，结果会变成 5+5=10。
+    if (ans == graph.INF) {
+        cout << "在 " << k << " 步内不可达\n";
+    } else {
+        cout << "在最多走 " << k << " 条边的情况下，最短距离为: " << ans << "\n";
+    }
+    return 0;
+}
+*/	
+	
+    \end{lstlisting}
+    \subsubsection{求树的直径与找树心}
+    \begin{lstlisting}
+   const int MAXN = 100005;
+vector<int> adj[MAXN];
+
+int max_dist;
+int farthest_node;
+int parent_node[MAXN]; // 用于记录路径
+
+// 第一次 DFS：只找最远点
+void dfs1(int u, int p, int d) {
+    if (d > max_dist) {
+        max_dist = d;
+        farthest_node = u;
+    }
+    for (int v : adj[u]) {
+        if (v != p) {
+            dfs1(v, u, d + 1);
+        }
+    }
+}
+
+// 第二次 DFS：找最远点，并记录父节点以便回溯路径
+void dfs2(int u, int p, int d) {
+    parent_node[u] = p; // 记录是从哪个节点走到 u 的
+    if (d > max_dist) {
+        max_dist = d;
+        farthest_node = u;
+    }
+    for (int v : adj[u]) {
+        if (v != p) {
+            dfs2(v, u, d + 1);
+        }
+    }
+}
+
+void find_tree_centers() {
+    // 1. 第一次 DFS 找直径的一个端点 A
+    max_dist = -1;
+    dfs1(1, 0, 0);
+    int A = farthest_node;
+
+    // 2. 第二次 DFS 找直径的另一个端点 B，并记录路径
+    max_dist = -1;
+    dfs2(A, 0, 0);
+    int B = farthest_node;
+
+    // 3. 从 B 往回走到 A，提取整条直径的路径
+    vector<int> path;
+    int curr = B;
+    while (curr != 0) {
+        path.push_back(curr);
+        curr = parent_node[curr];
+    }
+   // 4. 根据路径长度（节点数）找树心
+    /*int len = path.size();
+    if (len % 2 == 1) {
+        // 直径上有奇数个节点（即直径长度为偶数），树心只有 1 个
+        cout << "树心是: " << path[len / 2] << "\n";
+    } else {
+        // 直径上有偶数个节点（即直径长度为奇数），树心有 2 个
+        cout << "树心是: " << path[len / 2 - 1] << " 和 " << path[len / 2] << "\n";
+    }*/
+}
+
+注意两次dfs求树的直径只能在不带负权边的情况下用，如果带负权边就用树形dp。上面的代码是边权为1的情况，边权不全为1就搞个node，记录一下to和w，把dfs里面+1改成+w即可。树形dp的优点是可以求负权，缺点就是只能求直径了，其他什么都干不了，记录直径上的点什么的都做不了。
+
+//树形dp求直径
+struct Edge {
+    int to;
+    long long weight;
+};
+
+vector<Edge> adj[MAXN];
+long long dp[MAXN]; 
+long long tree_diameter; 
+
+void dfs_dp(int u, int p) {
+    // 如果允许路径长度为 0（即一个点也不走），dp 初始值为 0。
+    // 如果题目要求必须包含边且全是负权，这里可能需要初始化为 -INF
+    dp[u] = 0; 
+    
+    for (auto& edge : adj[u]) {
+        int v = edge.to;
+        long long w = edge.weight;
+        
+        if (v == p) continue;
+        
+        // 1. 先递归算出子节点 v 的 dp 值
+        dfs_dp(v, u);
+        
+        // 2. 拼合路径，尝试更新全局直径
+        // 此时 dp[u] 代表的是之前遍历过的其他子树的最长链
+        tree_diameter = max(tree_diameter, dp[u] + dp[v] + w);
+        
+        // 3. 维护 dp[u] 本身，供 u 的父节点使用
+        dp[u] = max(dp[u], dp[v] + w);
+    }
+}
+
+/*void solve() {
+    int n;
+    cin >> n;
+    
+    // 初始化清空
+    for (int i = 1; i <= n; i++) {
+        adj[i].clear();
+    }
+    
+    for (int i = 0; i < n - 1; i++) {
+        int u, v;
+        long long w;
+        cin >> u >> v >> w;
+        adj[u].push_back({v, w});
+        adj[v].push_back({u, w});
+    }
+    
+    tree_diameter = 0; // 视题目情况，如果全负权可能需要初始化为很小的负数
+    dfs_dp(1, 0);
+    cout << tree_diameter << "\n";
+}*/
+    \end{lstlisting}
+    \subsubsection{LCA}
+    \begin{lstlisting}
+    //LCA处理森林也是没问题的，加个vis数组，dfs的时候更新一下vis，然后不只是对根节点dfs了，要遍历所有节点，遇到!vis[i]就对他dfs一遍。然后就是求lca或者路径最大值什么的，先要判断一下两个点在不在一个连通块，这个也非常简单。如果是kru搞出来的mst上做lca，那kru有现成的并查集，判断mst.find(u)!=mst.find(v)就行，没有的话就搞一个id数组，在dfs的时候给每个点标记一下他们的id，就是属于哪个树，判断id[u]!=id[v]就行。
+       struct LCA {
+    int n, LOG;
+    vector<vector<int>> adj;
+    vector<int> depth;
+    vector<vector<int>> fa;
+
+    // 构造函数：初始化大小，动态计算需要的最大倍增层数
+    LCA(int _n) {
+        n = _n;
+        LOG = std::__lg(n) + 2; // __lg 返回下取整的对数，+2 保证安全裕度
+        adj.resize(n + 1);
+        depth.assign(n + 1, 0);
+        fa.assign(n + 1, vector<int>(LOG, 0));
+    }               
+
+    // 添边（无向树）
+    void add_edge(int u, int v) {
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    // DFS 预处理深度和倍增表
+    void dfs(int u, int p, int d) {
+        depth[u] = d;
+        fa[u][0] = p; 
+        
+        for (int k = 1; k < LOG; k++) {
+            if (fa[u][k - 1] != 0) {
+                fa[u][k] = fa[fa[u][k - 1]][k - 1];
+            } else {
+                fa[u][k] = 0; 
+            }
+        }
+        
+        for (int v : adj[u]) {
+            if (v != p) {
+                dfs(v, u, d + 1);
+            }
+        }
+    }
+
+    // 外部调用接口：建树初始化
+    void build(int root = 1) {
+        dfs(root, 0, 1);
+    }
+
+    // 查询 u 和 v 的最近公共祖先
+    int get_lca(int u, int v) {
+        if (depth[u] < depth[v]) swap(u, v);
+        
+        // 1. 深度对齐
+        for (int k = LOG - 1; k >= 0; k--) {
+            if (depth[u] - (1 << k) >= depth[v]) {
+                u = fa[u][k];
+            }
+        }
+        
+        if (u == v) return u;
+        
+        // 2. 同步逼近
+        for (int k = LOG - 1; k >= 0; k--) {
+            if (fa[u][k] != fa[v][k]) {
+                u = fa[u][k];
+                v = fa[v][k];
+            }
+        }
+        return fa[u][0];
+    }
+
+    // 附加实用功能：求树上任意两点的距离（边数）
+    int get_dist(int u, int v) {
+        return depth[u] + depth[v] - 2 * depth[get_lca(u, v)];
+    }
+};
+
+/*
+// 调用示例：
+void solve() {
+    int n, q; // n个节点，q次查询
+    cin >> n >> q;
+    
+    LCA tree(n);
+    
+    for (int i = 0; i < n - 1; i++) {
+        int u, v;
+        cin >> u >> v;
+        tree.add_edge(u, v);
+    }
+    
+    tree.build(1); // 以 1 为根节点预处理
+    
+    while (q--) {
+        int u, v;
+        cin >> u >> v;
+        cout << tree.get_lca(u, v) << "\n";
+    }
+}
+*/
+    \end{lstlisting}
+    \subsubsection{Kruskal}
+    \begin{lstlisting}
+        struct Kru {
+    struct Edge {
+        int u, v;
+        long long w;
+        bool operator<(const Edge& other) const {
+            return w < other.w;
+        }
+    };
+
+    int n;
+    vector<Edge> edges;       // 存储原图所有边
+    vector<Edge> mst_edges;   // 存储构成最小生成树的边
+    vector<int> fa;           // 并查集数组（一维 vector，绝对不会 MLE）
+    long long min_weight;     // 最小生成树的总权值
+    bool is_connected;        // 图是否连通
+
+    // 构造函数：初始化节点个数和并查集
+    Kru(int _n) {
+        n = _n;
+        fa.resize(n + 1);
+        for (int i = 0; i <= n; i++) {
+            fa[i] = i;
+        }
+        min_weight = 0;
+        is_connected = false;
+    }
+
+    // 添加边
+    void add_edge(int u, int v, long long w) {
+        edges.push_back({u, v, w});
+    }
+
+    // 并查集带路径压缩的查找
+    int find(int x) {
+        return fa[x] == x ? x : fa[x] = find(fa[x]);
+    }
+
+    // 执行算法，返回最小生成树的总权值（如果不连通，返回 -1）
+    long long build() {
+        // 1. 将所有边按权值从小到大排序
+        sort(edges.begin(), edges.end());
+        
+        mst_edges.clear();
+        min_weight = 0;
+        int edge_cnt = 0;
+
+        // 2. 贪心选边
+        for (const auto& e : edges) {
+            int root_u = find(e.u);
+            int root_v = find(e.v);
+            
+            if (root_u != root_v) {
+                fa[root_u] = root_v;      // 合并连通块
+                min_weight += e.w;        // 累加权值
+                mst_edges.push_back(e);   // 记录这条边
+                edge_cnt++;
+                
+                // 如果已经选了 n-1 条边，一棵树就建成了，提前退出
+                if (edge_cnt == n - 1) break;
+            }
+        }
+        
+        // 3. 检查是否选够了 n-1 条边
+        is_connected = (edge_cnt == n - 1 || n == 1);
+        return is_connected ? min_weight : -1;
+    }
+};
+
+/*
+// 调用示例：
+void solve() {
+    int n, m; 
+    cin >> n >> m;
+    
+    Kru mst(n);
+    
+    for(int i = 0; i < m; i++) {
+        int u, v;
+        long long w;
+        cin >> u >> v >> w;
+        mst.add_edge(u, v, w);
+    }
+    
+    long long ans = mst.build();
+    
+    if (ans == -1) {
+        cout << "orz" << "\n"; // 图不连通
+    } else {
+        cout << ans << "\n";
+        
+        // 如果题目需要你在 MST 上跑 LCA，可以这样直接用：
+        // LCA tree(n);
+        // for (auto& e : mst.mst_edges) {
+        //     tree.add_edge(e.u, e.v); // 注意这里可能要根据情况传边权
+        // }
+        // tree.build();
+    }
+}
+*/   
+    \end{lstlisting}    
+    \subsubsection{Prim}
+    \begin{lstlisting}
+    //注意prim的边加入的时候不是从小到大，是无序的，不像kruskal那样从小到大加边，因为prim是通过点去加。所以通过prim去做聚类问题的时候可以先把n-1条边给搞出来，开个edge数组记录一下，然后排下序，再取第k个，第n-k个，第k+1（根据题目来）个值什么的。edge数组记录的时候注意：prim的第一轮是会空转一轮先加个0进去的，所以加边的时候可以加个i!=1,把第一轮的0忽略掉。
+    struct Prim {
+    int n;
+    vector<long long> dis; // dis[i] 表示点 i 距离当前生成树集合的最短距离
+    vector<bool> vis;      // vis[i] 表示点 i 是否已经加入生成树
+    long long min_weight;  // 最小生成树总权值
+    bool is_connected;     // 图是否连通
+
+    // 【针对隐式坐标图】这里用来存点的坐标，避免开 V^2 的二维矩阵
+    // vector<pair<long long, long long>> points;
+
+    Prim(int _n) {
+        n = _n;
+        dis.assign(n + 1, INF);
+        vis.assign(n + 1, false);
+        min_weight = 0;
+        is_connected = false;
+    }
+
+    // 获取 u 和 v 之间的边权（核心拓展点）
+    inline long long get_weight(int u, int v) {
+        // 场景 A（纯坐标题）：不要存边，直接现算！
+        //外面先开个vector<pair<int,int>>point来存点的坐标
+        // long long dx = points[u].first - points[v].first;
+        // long long dy = points[u].second - points[v].second;
+        // return dx * dx + dy * dy; // 如果题目求的是欧几里得距离平方
+
+        // 场景 B（普通的给定边稠密图）：
+        // return G[u][v]
+        //G是在外面开的二维数组，提前存每个点两两之间的边权
+        return 0; 
+    }
+
+    // 执行算法，返回 MST 总权值，不连通返回 -1
+    long long build(int start_node = 1) {
+        min_weight = 0;
+        dis[start_node] = 0;
+        int cnt = 0; // 记录成功加入了多少个点
+
+        for (int i = 1; i <= n; i++) {
+            long long min_d = INF;
+            int u = -1;
+
+            // 1. 扫描一遍未加入的点，找离当前生成树最近的
+            for (int j = 1; j <= n; j++) {
+                if (!vis[j] && dis[j] < min_d) {
+                    min_d = dis[j];
+                    u = j;
+                }
+            }
+
+            // 如果找不到，说明剩下的点和树断开了，图不连通
+            if (u == -1) break;
+
+            // 2. 将 u 吞并到生成树集合中
+            vis[u] = true;
+            min_weight += min_d;
+            cnt++;
+
+            // 3. 用刚加入的 u 去更新外面那些未加入点到树的距离
+            for (int v = 1; v <= n; v++) {
+                if (!vis[v]) {
+                    long long w = get_weight(u, v); // 动态获取距离
+                    if (w < dis[v]) {
+                        dis[v] = w;
+                    }
+                }
+            }
+        }
+
+        is_connected = (cnt == n);
+        return is_connected ? min_weight : -1;
+    }
+};
+
+/*
+// 调用示例（以坐标建图为例）：
+void solve() {
+    int n; 
+    cin >> n;
+    
+    Prim mst(n);
+    // mst.points.resize(n + 1);
+    // for(int i = 1; i <= n; i++) cin >> mst.points[i].first >> mst.points[i].second;
+    
+    long long ans = mst.build();
+    
+    if (ans == -1) cout << "orz\n";
+    else cout << ans << "\n";
+}
+*/   
+    \end{lstlisting}
+    \subsubsection{严格次小生成树}
+    \begin{lstlisting}
+    struct Kru {
+    struct Edge {
+        int u, v;
+        long long w;
+        bool operator<(const Edge& other) const {
+            return w < other.w;
+        }
+    };
+
+    int n;
+    vector<Edge> edges;       // 存储原图所有边
+    vector<Edge> mst_edges;   // 存储构成最小生成树的边
+    vector<Edge>nedges;
+    vector<int> fa;           // 并查集数组（一维 vector，绝对不会 MLE）
+    long long min_weight;     // 最小生成树的总权值
+    bool is_connected;        // 图是否连通
+
+    // 构造函数：初始化节点个数和并查集
+    Kru(int _n) {
+        n = _n;
+        fa.resize(n + 1);
+        for (int i = 0; i <= n; i++) {
+            fa[i] = i;
+        }
+        min_weight = 0;
+        is_connected = false;
+    }
+
+    // 添加边
+    void add_edge(int u, int v, long long w) {
+        edges.push_back({u, v, w});
+    }
+
+    // 并查集带路径压缩的查找
+    int find(int x) {
+        return fa[x] == x ? x : fa[x] = find(fa[x]);
+    }
+
+    // 执行算法，返回最小生成树的总权值（如果不连通，返回 -1）
+    long long build() {
+        // 1. 将所有边按权值从小到大排序
+        sort(edges.begin(), edges.end());
+        
+        mst_edges.clear();
+        min_weight = 0;
+        int edge_cnt = 0;
+
+        // 2. 贪心选边
+        for (const auto& e : edges) {
+            int root_u = find(e.u);
+            int root_v = find(e.v);
+            
+            if (root_u != root_v) {
+                fa[root_u] = root_v;      // 合并连通块
+                min_weight += e.w;        // 累加权值
+                mst_edges.push_back(e);   // 记录这条边
+                edge_cnt++;
+                
+            }
+            else{
+                nedges.pb(e);
+            }
+        }
+        return min_weight;
+        // 3. 检查是否选够了 n-1 条边
+        //is_connected = (edge_cnt == n - 1 || n == 1);
+        //return is_connected ? min_weight : -1;
+    }
+};
+
+/*
+// 调用示例：
+void solve() {
+    int n, m; 
+    cin >> n >> m;
+    
+    Kru mst(n);
+    
+    for(int i = 0; i < m; i++) {
+        int u, v;
+        long long w;
+        cin >> u >> v >> w;
+        mst.add_edge(u, v, w);
+    }
+    
+    long long ans = mst.build();
+    
+    if (ans == -1) {
+        cout << "orz" << "\n"; // 图不连通
+    } else {
+        cout << ans << "\n";
+        
+        // 如果题目需要你在 MST 上跑 LCA，可以这样直接用：
+        // LCA tree(n);
+        // for (auto& e : mst.mst_edges) {
+        //     tree.add_edge(e.u, e.v); // 注意这里可能要根据情况传边权
+        // }
+        // tree.build();
+    }
+}
+*/
+		       struct LCA {
+    int n, LOG;
+    vector<vector<pii>> adj;
+    vector<int> depth;
+    vector<vector<int>> fa;
+    vector<vector<int>>mx1,mx2;
+
+    // 构造函数：初始化大小，动态计算需要的最大倍增层数
+    LCA(int _n) {
+        n = _n;
+        LOG = std::__lg(n) + 2; // __lg 返回下取整的对数，+2 保证安全裕度
+        adj.resize(n + 1);
+        depth.assign(n + 1, 0);
+        fa.assign(n + 1, vector<int>(LOG, 0));
+        mx1.assign(n+1,vector<int>(LOG,-1));
+        mx2.assign(n+1,vector<int>(LOG,-1));
+    }               
+
+    // 添边（无向树）
+    void add_edge(int u, int v,int w) {
+        adj[u].push_back({v,w});
+        adj[v].push_back({u,w});
+    }
+
+    // DFS 预处理深度和倍增表
+    void dfs(int u, int p, int d,int ww) {
+        depth[u] = d;
+        fa[u][0] = p; 
+        mx1[u][0]=ww,mx2[u][0]=-1;
+        for (int k = 1; k < LOG; k++) {
+            if (fa[u][k - 1] != 0) {
+                fa[u][k] = fa[fa[u][k - 1]][k - 1];
+                int a1=mx1[u][k-1],a2=mx2[u][k-1];
+                int b1=mx1[fa[u][k-1]][k-1],b2=mx2[fa[u][k-1]][k-1];
+                mx1[u][k]=max(a1,b1);
+                if(a1<b1){
+                    mx2[u][k]=max(a1,b2);
+                }
+                else if(a1>b1){
+                    mx2[u][k]=max(a2,b1);
+                }
+                else{
+                    mx2[u][k]=max(a2,b2);
+                }
+            } else {
+                fa[u][k] = 0; 
+            }
+        }
+        
+        for (auto v : adj[u]) {
+            if (v.first != p) {
+                dfs(v.first, u, d + 1,v.second);
+            }
+        }
+    }
+
+    // 外部调用接口：建树初始化
+    void build(int root = 1) {
+        dfs(root, 0, 1,-1);
+    }
+
+    // 查询 u 和 v 的最近公共祖先
+    pii get_res(int u, int v) {
+         int res1=-1,res2=-1;
+        auto merge=[&](int m1,int m2){
+            if(m1>res1){
+                res2=max(res1,m2);
+                res1=m1;
+            }
+            else if(m1==res1){
+                res2=max(res2,m2);
+            }
+            else if(m1<res1&&m1>res2){
+                res2=m1;
+            }
+        };
+        if (depth[u] < depth[v]) swap(u, v);
+        // 1. 深度对齐
+        for (int k = LOG - 1; k >= 0; k--) {
+            if (depth[u] - (1 << k) >= depth[v]) {
+                merge(mx1[u][k],mx2[u][k]);
+                u = fa[u][k];
+            }
+        }
+        
+        if (u == v) return {res1,res2};
+        
+        // 2. 同步逼近
+        for (int k = LOG - 1; k >= 0; k--) {
+            if (fa[u][k] != fa[v][k]) {
+                merge(mx1[u][k],mx2[u][k]);
+                merge(mx1[v][k],mx2[v][k]);
+                u = fa[u][k];
+                v = fa[v][k];
+            }
+        }
+        merge(mx1[u][0],mx2[u][0]);
+        merge(mx1[v][0],mx2[v][0]);
+        return {res1,res2};
+    }
+
+    // 附加实用功能：求树上任意两点的距离（边数）
+    //int get_dist(int u, int v) {
+        //return depth[u] + depth[v] - 2 * depth[get_lca(u, v)];
+    //}
+};
+
+/*
+// 调用示例：
+void solve() {
+    int n, q; // n个节点，q次查询
+    cin >> n >> q;
+    
+    LCA tree(n);
+    
+    for (int i = 0; i < n - 1; i++) {
+        int u, v;
+        cin >> u >> v;
+        tree.add_edge(u, v);
+    }
+    
+    tree.build(1); // 以 1 为根节点预处理
+    
+    while (q--) {
+        int u, v;
+        cin >> u >> v;
+        cout << tree.get_lca(u, v) << "\n";
+    }
+}
+*/
+		void solve()
+		{		
+			int n,m;
+            cin>>n>>m;
+            Kru mst(n);
+            for(int i=0;i<m;i++){
+                int u,v,w;
+                cin>>u>>v>>w;
+                if(u==v) continue;
+                mst.add_edge(u,v,w);
+            }
+            int ini=mst.build();
+            LCA tr(n);
+            for(auto e:mst.mst_edges){
+                tr.add_edge(e.u,e.v,e.w);
+            }
+            tr.build();
+            int ans=2e18;
+            for(auto e:mst.nedges){
+                int u=e.u;
+                int v=e.v;
+                int w=e.w;
+                int r1=tr.get_res(u,v).first;
+                int r2=tr.get_res(u,v).second;
+                if(w>r1) ans=min(ans,ini+w-r1);
+                else if(r2!=-1) ans=min(ans,ini+w-r2);
+            }
+            cout<<ans<<"\n";
+		}
+        如果是非严格次小生成树，那直接维护一个最大值就够了，更简单
+    \end{lstlisting}
+    \subsubsection{dagdp求dag上的最长链以及有几条最长链}
+    \begin{lstlisting}
+        vector<int>a=ts.order;
+			int l=a.size();
+			vector<int>dp(l+1,1);
+			vector<int>cnt(l+1,1);
+			for(int i=1;i<=l;i++){
+				dp[i]=g.scc_sz[i];
+			}
+			for(int i=0;i<l;i++){
+				int u=a[i];
+				for(auto x:ts.adj[u]){
+					if(dp[u]+g.scc_sz[x]>dp[x]){
+						dp[x]=dp[u]+g.scc_sz[x];//这里是tarjan缩点之后每个超级点带了一个权值的情况，如果正常dag就++就行了。
+						cnt[x]=cnt[u];
+					}
+					else if(dp[u]+g.scc_sz[x]==dp[x]){
+						cnt[x]=(cnt[x]+cnt[u])%w;
+					}
+				}
+			}
+			int mx=0;
+			for(int i=1;i<=l;i++) mx=max(mx,dp[i]);
+			int ans=0;
+			for(int i=1;i<=l;i++){
+				if(dp[i]==mx){
+					ans=(ans+cnt[i])%w;
+				}
+			}
+			cout<<mx<<"\n";//最长链的节点数
+			cout<<ans<<"\n";//有几条最长链
+    \end{lstlisting}
+    \subsubsection{scc}
+    \begin{lstlisting}
+        struct scc {
+    int n; // 节点数
+    vector<vector<int>> adj; // 有向图邻接表
+    vector<int> dfn, low, scc_id, scc_sz; // Tarjan 核心数组
+    vector<bool> in_stk; // 标记是否在栈中
+    stack<int> stk;
+    int timer, scc_cnt; // 时间戳和强连通分量数量
+
+    // 构造函数，初始化大小
+    scc(int _n) {
+        n = _n;
+        adj.resize(n + 1);
+        dfn.assign(n + 1, 0);
+        low.assign(n + 1, 0);
+        scc_id.assign(n + 1, 0);  
+        scc_sz.assign(n + 1, 0);
+        in_stk.assign(n + 1, false);
+        timer = 0;
+        scc_cnt = 0;
+    }
+
+    // 添加有向边
+    void add_edge(int u, int v) {
+        adj[u].push_back(v);
+    }
+
+    // Tarjan 核心 DFS 过程（内部调用）
+    void dfs(int u) {
+        dfn[u] = low[u] = ++timer;
+        stk.push(u);
+        in_stk[u] = true;
+
+        for (int v : adj[u]) {
+            if (!dfn[v]) {
+                dfs(v);
+                low[u] = min(low[u], low[v]);
+            } else if (in_stk[v]) {
+                low[u] = min(low[u], dfn[v]);
+            }
+        }
+
+        if (dfn[u] == low[u]) {
+            ++scc_cnt;
+            int v;
+            do {
+                v = stk.top();
+                stk.pop();
+                in_stk[v] = false;
+                scc_id[v] = scc_cnt; // 记录原节点属于哪个超级节点
+                scc_sz[scc_cnt]++;   // 记录该超级节点包含几个原节点
+            } while (v != u);
+        }
+    }
+
+    // 运行 Tarjan 算法求出所有强连通分量
+    void run() {
+        for (int i = 1; i <= n; i++) {
+            if (!dfn[i]) {
+                dfs(i);
+            }
+        }
+    }
+};
+
+/*
+int main() {
+    int n, m;
+    cin >> n >> m;
+
+    // 实例化结构体，传入节点数量
+    SCC graph(n);
+
+    // 读入有向边
+    for (int i = 0; i < m; ++i) {
+        int u, v;
+        cin >> u >> v;
+        graph.add_edge(u, v); 
+    }
+
+    // 运行算法
+    graph.run();
+
+    // 获取结果示例
+    cout << "整张图被缩成了 " << graph.scc_cnt << " 个超级节点\n";
+    
+    // 如果想要知道两个点是否互相可达（即在同一个强连通分量里）
+    int u = 1, v = 2;
+    if (graph.scc_id[u] == graph.scc_id[v]) {
+        cout << u << " 和 " << v << " 在同一个强连通分量中\n";
+    }
+
+    return 0;
+}
+*/
+    \end{lstlisting}
+    \subsubsection{bc(bridge\&cut 求桥和割点)}
+    \begin{lstlisting}
+        struct bc {
+    int n, timer, ecnt;
+    vector<vector<pair<int,int>>> adj;
+
+    vector<int> dfn, low;
+    vector<int> br,cut;
+
+    bc(int _n) {
+        n = _n;
+        timer = ecnt = 0;
+        adj.resize(n + 1);
+    }
+
+    // 添加无向边
+    void add_edge(int u, int v) {
+        int id = ecnt++;
+        adj[u].push_back({v, id});
+        adj[v].push_back({u, id});
+    }
+
+    void dfs(int u, int pe) {
+        dfn[u] = low[u] = ++timer;
+
+        int child = 0;
+
+        for (auto [v, id] : adj[u]) {
+            if (id == pe) continue;
+
+            if (!dfn[v]) {
+                child++;
+
+                dfs(v, id);
+
+                low[u] = min(low[u], low[v]);
+
+                // 判断桥
+                if (low[v] > dfn[u]) {
+                    br[id] = 1;
+                }
+
+                // 判断非根节点割点
+                if (pe != -1 && low[v] >= dfn[u]) {
+                    cut[u] = 1;
+                }
+            }
+            else {
+                low[u] = min(low[u], dfn[v]);
+            }
+        }
+
+        // 根节点特殊判断
+        if (pe == -1 && child >= 2) {
+            cut[u] = 1;
+        }
+    }
+
+    void build() {
+        timer = 0;
+
+        dfn.assign(n + 1, 0);
+        low.assign(n + 1, 0);
+
+        br.assign(ecnt, 0);
+        cut.assign(n + 1, 0);
+
+        // 处理非连通图
+        for (int i = 1; i <= n; i++) {
+            if (!dfn[i]) {
+                dfs(i, -1);
+            }
+        }
+    }
+};
+/*用法示例
+bc g(n);
+g.add_edge(u, v);
+g.build();
+
+g.br[id]; // 是否为桥
+g.cut[u]; // 是否为割点*/
+    \end{lstlisting}
+    \subsubsection{ap(割点)}
+    \begin{lstlisting}
+        struct ap {
+    int n;
+    vector<vector<int>> adj;
+    vector<int> dfn, low;
+    vector<bool> is_cut;
+    int timer;
+    int cut_cnt; // 割点总数
+
+    ap(int _n) {
+         n = _n;
+        adj.assign(n + 1, vector<int>());
+        dfn.assign(n + 1, 0);
+        low.assign(n + 1, 0);
+        is_cut.assign(n + 1, false);
+        timer = 0;
+        cut_cnt = 0;
+    }
+
+    void add_edge(int u, int v) {
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    // p 为父节点，用于防止顺着无向边往回走
+    void dfs(int u, int p) {
+        dfn[u] = low[u] = ++timer;
+        int child_cnt = 0; // 记录搜索树上的独立子节点数量
+
+        for (int v : adj[u]) {
+            if (v == p) continue; // 绝不能用父节点的 dfn 更新自己的 low
+
+            if (!dfn[v]) { // 分支1：树枝边（v 没去过）
+                child_cnt++;
+                dfs(v, u);
+                low[u] = min(low[u], low[v]); // 用小弟的 low 更新自己
+
+                // 核心判定 1：非根节点，且小弟无论怎么绕也跨不过我
+                if (p != 0 && low[v] >= dfn[u]) {
+                    is_cut[u] = true;
+                }
+            } else { // 分支2：返祖边（v 去过，且不是父节点）
+                low[u] = min(low[u], dfn[v]); // 只能用 dfn 更新，不能用 low
+            }
+        }
+
+        // 核心判定 2：如果是 DFS 树的根节点，且有两个以上的独立分支
+        if (p == 0 && child_cnt >= 2) {
+            is_cut[u] = true;
+        }
+    }
+
+    // 图可能不连通，需要遍历所有节点
+    void build() {
+        for (int i = 1; i <= n; i++) {
+            if (!dfn[i]) {
+                dfs(i, 0); // 0 代表没有父节点，即作为根节点出发
+            }
+        }
+        
+        // 统计割点总数
+        for (int i = 1; i <= n; i++) {
+            if (is_cut[i]) cut_cnt++;
+        }
+    }
+};
+
+/*
+void solve() {
+    int n, m;
+    cin >> n >> m;
+    
+    CutVertex graph(n);
+    
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        cin >> u >> v;
+        // 遇到重边不用怕，这套逻辑天然免疫重边干扰
+        graph.add_edge(u, v);
+    }
+    
+    graph.build();
+    
+    cout << graph.cut_cnt << "\n";
+    for (int i = 1; i <= n; i++) {
+        if (graph.is_cut[i]) {
+            cout << i << " ";
+        }
+    }
+    cout << "\n";
+}
+*/
+    \end{lstlisting}
+    \subsubsection{vbcc(点双)}
+    \begin{lstlisting}
+        struct vbcc {
+    int n; // 节点数
+    vector<vector<int>> adj; // 邻接表
+    vector<int> dfn, low, st; // Tarjan 数组与手写栈
+    int timer;
+    
+    vector<bool> is_cut; // 标记某个点是否为全局割点
+    vector<vector<int>> bccs; // 存储所有的点双连通分量
+
+    // 构造函数，初始化大小
+    vbcc(int _n) {
+        n = _n;
+        adj.resize(n + 1);
+        dfn.assign(n + 1, 0);
+        low.assign(n + 1, 0);
+        is_cut.assign(n + 1, false);
+        timer = 0;
+    }
+
+    // 添加无向边
+    void add_edge(int u, int v) {
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    // Tarjan 核心逻辑
+    void tarjan(int u, int root) {
+        dfn[u] = low[u] = ++timer;
+        st.push_back(u);
+        int child = 0;
+
+        // 特判孤立点：没有连边的点自身构成一个点双
+        if (u == root && adj[u].empty()) {
+            bccs.push_back({u});
+            return;
+        }
+
+        for (int v : adj[u]) {
+            if (!dfn[v]) {
+                child++;
+                tarjan(v, root);
+                low[u] = min(low[u], low[v]);
+
+                // 发现点双边界
+                if (low[v] >= dfn[u]) {
+                    is_cut[u] = true; // 暂时标记，若是根节点稍后特判修正
+                    vector<int> comp;
+                    
+                    // 弹栈直到弹出 v 为止
+                    while (true) {
+                        int x = st.back();
+                        st.pop_back();
+                        comp.push_back(x);
+                        if (x == v) break;
+                    }
+                    // u 作为割点也要加入该点双，但 u 本身不出栈
+                    comp.push_back(u);
+                    bccs.push_back(comp);
+                }
+            } else {
+                // 返祖边更新 low 值
+                low[u] = min(low[u], dfn[v]);
+            }
+        }
+
+        // 特判根节点是否真的是割点（至少有两个独立的子树）
+        if (u == root && child < 2) {
+            is_cut[u] = false;
+        }
+    }
+
+    // 运行 Tarjan 算法求解图中的所有 v-BCC 和割点
+    void run() {
+        for (int i = 1; i <= n; ++i) {
+            if (!dfn[i]) {
+                // 每次未访问的点都是一个新的连通块的 root
+                tarjan(i, i);
+            }
+        }
+    }
+};
+
+/*
+    int n, m;
+    cin >> n >> m;
+
+    // 1. 实例化结构体，传入节点数量
+    VBCC graph(n);
+
+    // 2. 读入无向边
+    for (int i = 0; i < m; ++i) {
+        int u, v;
+        cin >> u >> v;
+        graph.add_edge(u, v);
+    }
+
+    // 3. 运行算法
+    graph.run();
+
+    // 4. 获取结果：输出图中有多少个割点
+    int cut_count = 0;
+    for (int i = 1; i <= n; ++i) {
+        if (graph.is_cut[i]) {
+            cut_count++;
+        }
+    }
+    cout << "割点总数: " << cut_count << "\n";
+
+    // 5. 获取结果：输出所有的点双连通分量
+    cout << "点双连通分量总数: " << graph.bccs.size() << "\n";
+    for (int i = 0; i < graph.bccs.size(); ++i) {
+        cout << "BCC #" << i + 1 << ": ";
+        for (int node : graph.bccs[i]) {
+            cout << node << " ";
+        }
+        cout << "\n";
+    }
+
+//圆方树
+    int total_nodes = n + g.bccs.size(); 
+    //完整圆方树
+    vector<vector<int>> tree(total_nodes + 1); // 邻接表开到最大节点数
+    for (int i = 0; i < g.bccs.size(); i++) {
+        int square = n + i + 1; // 方点编号从 n+1 开始
+        
+        for (int round : g.bccs[i]) {
+            tree[square].push_back(round);
+            tree[round].push_back(square);
+        }
+    }
+    //压缩圆方树
+    vector<vector<int>> comp_tree(total_nodes + 1); 
+    for (int i = 0; i < g.bccs.size(); i++) {
+        int square = n + i + 1; 
+        
+        for (int round : g.bccs[i]) {
+            // 方点【仅】向该点双内的【割点】连边
+            if (g.is_cut[round]) {
+                comp_tree[square].push_back(round);
+                comp_tree[round].push_back(square);
+            }
+        }
+    }
+*/
+    \end{lstlisting}
+    \subsubsection{2-sat}
+    \begin{lstlisting}
+        //注意2sat add_edge的时候一定是成对出现的，因为你加了u->v，就一定要加v反->u反。一个命题成立那么它的逆否命题必然成立。
+        struct tsat {
+    int n; // 变量数量
+    vector<vector<int>> adj; // 蕴含图
+
+    // Tarjan 所需数组
+    vector<int> dfn, low, scc_id, scc_sz;
+    vector<bool> in_stk;
+    stack<int> stk;
+    int timer, scc_cnt;
+
+    vector<bool> ans; // 最终答案，ans[i] 表示 xi 是否为 true
+
+    // 构造函数
+    tsat(int _n) {
+        n = _n;
+        adj.resize(2 * n + 1);
+
+        dfn.assign(2 * n + 1, 0);
+        low.assign(2 * n + 1, 0);
+        scc_id.assign(2 * n + 1, 0);
+        scc_sz.assign(2 * n + 1, 0);
+        in_stk.assign(2 * n + 1, false);
+
+        timer = 0;
+        scc_cnt = 0;
+
+        ans.assign(n + 1, false);
+    }
+
+    // 将逻辑文字转换为图中的节点
+    // 正数 i 表示 xi 为 true
+    // 负数 -i 表示 xi 为 false
+    int node(int x) {
+        if (x > 0) return x;
+        return n + (-x);
+    }
+
+    // 求一个节点对应的反状态节点
+    int neg(int u) {
+        if (u <= n) return u + n;
+        return u - n;
+    }
+
+    // 添加一条蕴含边：a -> b
+    // a、b 均为带正负号的逻辑文字
+    void add_edge(int a, int b) {
+        int u = node(a);
+        int v = node(b);
+        adj[u].push_back(v);
+    }
+
+    // 添加一个或条件：(a | b)
+    // 对应两条边：!a -> b，!b -> a
+    void add_or(int a, int b) {
+        int u = node(a);
+        int v = node(b);
+
+        adj[neg(u)].push_back(v);
+        adj[neg(v)].push_back(u);
+    }
+
+    // 添加一个异或条件：(a ^ b)
+    void add_xor(int a, int b) {
+        add_or(a, b);
+        add_or(-a, -b);
+    }
+
+    // 强制某个逻辑文字为 true
+    void force(int a) {
+        add_or(a, a);
+    }
+
+    // Tarjan 核心 DFS
+    void dfs(int u) {
+        dfn[u] = low[u] = ++timer;
+        stk.push(u);
+        in_stk[u] = true;
+
+        for (int v : adj[u]) {
+            if (!dfn[v]) {
+                dfs(v);
+                low[u] = min(low[u], low[v]);
+            }
+            else if (in_stk[v]) {
+                low[u] = min(low[u], dfn[v]);
+            }
+        }
+
+        if (dfn[u] == low[u]) {
+            ++scc_cnt;
+            int v;
+
+            do {
+                v = stk.top();
+                stk.pop();
+
+                in_stk[v] = false;
+                scc_id[v] = scc_cnt;
+                scc_sz[scc_cnt]++;
+            } while (v != u);
+        }
+    }
+
+    // 运行 Tarjan
+    void run() {
+        timer = 0;
+        scc_cnt = 0;
+
+        fill(dfn.begin(), dfn.end(), 0);
+        fill(low.begin(), low.end(), 0);
+        fill(scc_id.begin(), scc_id.end(), 0);
+        fill(scc_sz.begin(), scc_sz.end(), 0);
+        fill(in_stk.begin(), in_stk.end(), false);
+
+        for (int i = 1; i <= 2 * n; i++) {
+            if (!dfn[i]) {
+                dfs(i);
+            }
+        }
+    }
+};
+    // 判断是否有解，并恢复一组合法赋值
+    // 返回 true 表示有解，false 表示无解
+   /* bool solve() {
+        run();
+
+        for (int i = 1; i <= n; i++) {
+            // 正反状态处于同一个 SCC，无解
+            if (scc_id[i] == scc_id[i + n]) {
+                return false;
+            }
+        }
+
+        // 恢复具体赋值
+        // 当前 Tarjan 编号方式：弹栈时递增
+        for (int i = 1; i <= n; i++) {
+            ans[i] = (scc_id[i] < scc_id[i + n]);
+        }
+
+        return true;
+    }
+*/
+
+    \end{lstlisting}
+    \section{语法注意事项}
+    \subsection{函数里有默认参数}
+    \begin{lstlisting}
+    函数里有默认参数的时候要把默认参数堆到右边，因为如果放左边那你所有参数都得设个默认值反正挺麻烦的，所以统一放右边就好了，然后传参的时候传非默认参数就行。
+    例如：
+    double build(int tar,int start_node = 1) 
+    mst.build(1);//这里的1是tar
+    \end{lstlisting}
+    \subsection{想用几个char拼接成一个字符串}
+    \begin{lstlisting}
+        如果直接写string=char1+char2+char3这样子是不行的，因为这样会把三个char的ascii码相加，得到的是整数而不是字符串。
+        正确做法是，如果char是从一个string里面取的，可以用substr，s.substr(2,3)代表从s的下标2开始截取长度为3的字串，然后写str=str1+str2+str3...字符串相加是可以正常得到字符串的。或者这样写，string+=char1,string+=char2，这样是可以的。
+    \end{lstlisting}
+\end{document}
+
