@@ -20,3 +20,6 @@ build*.out
 # 编辑器
 .vscode/
 *.code-workspace
+
+push-test.txt
+build.log
